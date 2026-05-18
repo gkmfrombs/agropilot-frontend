@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next'
 import { useTheme } from './ThemeContext';
 
 // ===================================================================
@@ -129,7 +130,6 @@ export function TopNav() {
         { to: '/', label: 'Home', I: IHome },
         { to: '/route', label: 'Route', I: IMap },
         { to: '/chat', label: 'Chat', I: IChat },
-        { to: '/alerts', label: 'Alerts', I: IBell },
         { to: '/sync', label: 'Sync', I: ISync },
         { to: '/me', label: 'Profile', I: IUser },
     ];
@@ -170,12 +170,13 @@ export function TopNav() {
 
 export function BottomNav() {
     const location = useLocation();
+    const { t } = useTranslation()
     const items = [
-        { id: 'home',  label: 'Home',    I: IHome, to: '/' },
-        { id: 'route', label: 'Route',   I: IMap,  to: '/route' },
-        { id: 'chat',  label: 'Chat',    I: IChat, to: '/chat', primary: true },
-        { id: 'sync',  label: 'Sync',    I: ISync, to: '/sync' },
-        { id: 'me',    label: 'Profile', I: IUser, to: '/me' },
+        { id: 'home',  label: t('nav.home'),    I: IHome, to: '/' },
+        { id: 'route', label: t('nav.route'),   I: IMap,  to: '/route' },
+        { id: 'chat',  label: t('nav.chat'),    I: IChat, to: '/chat', primary: true },
+        { id: 'sync',  label: t('nav.sync'),    I: ISync, to: '/sync' },
+        { id: 'me',    label: t('nav.profile'), I: IUser, to: '/me' },
     ];
     return (
         <div className="bottom-nav-wrap">

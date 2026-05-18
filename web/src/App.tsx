@@ -1,29 +1,32 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './components/AuthContext';
-import { ToastProvider } from './components/ToastContext';
-import { ThemeProvider } from './components/ThemeContext';
-import Login from './screens/Login';
-import MorningBriefing from './screens/MorningBriefing';
-import FarmerProfile from './screens/FarmerProfile';
-import PredictiveAlert from './screens/PredictiveAlert';
-import AIConsultant from './screens/AIConsultant';
-import RoutePlanning from './screens/RoutePlanning';
-import VisitCopilot from './screens/VisitCopilot';
-import LogVisit from './screens/LogVisit';
-import AlertsFeed from './screens/AlertsFeed';
-import CropScanner from './screens/CropScanner';
-import YieldCalculator from './screens/YieldCalculator';
-import RetailerProfile from './screens/RetailerProfile';
-import RepProfile from './screens/RepProfile';
-import { TopNav } from './components/Shared';
-import ManagerLayout from './screens/manager/ManagerLayout';
-import TerritoryHeatmap from './screens/manager/TerritoryHeatmap';
-import KPIDashboard from './screens/manager/KPIDashboard';
-import RepPerformance from './screens/manager/RepPerformance';
-import AlertManagement from './screens/manager/AlertManagement';
-import CampaignPerformance from './screens/manager/CampaignPerformance';
-import ReasoningGraph from './screens/ReasoningGraph';
-import SyncCenter from './screens/SyncCenter';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from './components/AuthContext'
+import { ToastProvider } from './components/ToastContext'
+import { ThemeProvider } from './components/ThemeContext'
+import { useState, useEffect } from 'react'
+import Login from './screens/Login'
+import Onboarding from './screens/Onboarding'
+import MorningBriefing from './screens/MorningBriefing'
+import FarmerProfile from './screens/FarmerProfile'
+import PredictiveAlert from './screens/PredictiveAlert'
+import AIConsultant from './screens/AIConsultant'
+import RoutePlanning from './screens/RoutePlanning'
+import VisitCopilot from './screens/VisitCopilot'
+import LogVisit from './screens/LogVisit'
+import AlertsFeed from './screens/AlertsFeed'
+import CropScanner from './screens/CropScanner'
+import YieldCalculator from './screens/YieldCalculator'
+import RetailerProfile from './screens/RetailerProfile'
+import RepProfile from './screens/RepProfile'
+import { TopNav } from './components/Shared'
+import TourOverlay from './components/TourOverlay'
+import ManagerLayout from './screens/manager/ManagerLayout'
+import TerritoryHeatmap from './screens/manager/TerritoryHeatmap'
+import KPIDashboard from './screens/manager/KPIDashboard'
+import RepPerformance from './screens/manager/RepPerformance'
+import AlertManagement from './screens/manager/AlertManagement'
+import CampaignPerformance from './screens/manager/CampaignPerformance'
+import ReasoningGraph from './screens/ReasoningGraph'
+import SyncCenter from './screens/SyncCenter'
 
 function RepApp() {
   return (
@@ -50,7 +53,7 @@ function RepApp() {
         </Routes>
       </div>
     </div>
-  );
+  )
 }
 
 function ManagerApp() {
@@ -65,35 +68,70 @@ function ManagerApp() {
       </Route>
       <Route path="*" element={<Navigate to="/manager" />} />
     </Routes>
-  );
+  )
+}
+
+/**
+ * Wraps the authenticated rep app and conditionally renders the spotlight tour
+ * on first login. Tour state is tracked in localStorage ('agro_tour_done').
+ */
+function RepAppWithTour() {
+  const [showTour, setShowTour] = useState(
+    // Show tour only if the user has never completed it
+    () => !localStorage.getItem('agro_tour_done')
+  )
+
+  const handleTourDone = () => {
+    setShowTour(false)
+  }
+
+  return (
+    <>
+      <RepApp />
+      {showTour && <TourOverlay onDone={handleTourDone} />}
+    </>
+  )
 }
 
 function AppRoutes() {
-  const { role } = useAuth();
+  const { role } = useAuth()
 
+  // ── Unauthenticated: check onboarding ──────────────────────────────────────
   if (!role) {
+    const onboarded = !!localStorage.getItem('agro_onboarded')
+
     return (
       <Routes>
-        <Route path="*" element={<Login />} />
+        {/* If user hasn't seen onboarding yet, always redirect to it first */}
+        <Route
+          path="/onboarding"
+          element={<Onboarding />}
+        />
+        <Route
+          path="*"
+          element={onboarded ? <Login /> : <Navigate to="/onboarding" replace />}
+        />
       </Routes>
-    );
+    )
   }
 
+  // ── Manager ────────────────────────────────────────────────────────────────
   if (role === 'manager') {
     return (
       <Routes>
         <Route path="/manager/*" element={<ManagerApp />} />
         <Route path="*" element={<Navigate to="/manager" />} />
       </Routes>
-    );
+    )
   }
 
+  // ── Field Rep ──────────────────────────────────────────────────────────────
   return (
     <Routes>
       <Route path="/manager/*" element={<Navigate to="/" />} />
-      <Route path="/*" element={<RepApp />} />
+      <Route path="/*" element={<RepAppWithTour />} />
     </Routes>
-  );
+  )
 }
 
 export default function App() {
@@ -107,5 +145,5 @@ export default function App() {
         </ToastProvider>
       </AuthProvider>
     </ThemeProvider>
-  );
+  )
 }

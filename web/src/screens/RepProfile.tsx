@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import i18next from 'i18next'
 import {
   IChev,
   TopStrip,
@@ -13,6 +14,17 @@ import {
 } from '../components/Shared'
 import { useAuth } from '../components/AuthContext'
 import { useTheme } from '../components/ThemeContext'
+
+// Maps human-readable label → BCP-47 language code used by i18next
+const LANGUAGE_OPTIONS = [
+  { label: 'English',            code: 'en' },
+  { label: 'हिंदी (Hindi)',      code: 'hi' },
+  { label: 'मराठी (Marathi)',    code: 'mr' },
+  { label: 'தமிழ் (Tamil)',      code: 'ta' },
+  { label: 'తెలుగు (Telugu)',    code: 'te' },
+] as const
+
+type LanguageCode = typeof LANGUAGE_OPTIONS[number]['code']
 
 // ── Inline icon definitions (SVG via Icon wrapper) ──────────────────────────
 
@@ -333,11 +345,25 @@ function SettingRow({
 // ── Main screen ──────────────────────────────────────────────────────────────
 
 export default function RepProfile() {
-  const [language, setLanguage] = useState('English')
+  // Derive the initial selected language from the active i18next language code.
+  // Falls back to 'en' when the stored code has no matching option.
+  const resolveInitialCode = (): LanguageCode => {
+    const active = i18next.language?.split('-')[0] as LanguageCode
+    return LANGUAGE_OPTIONS.some((o) => o.code === active) ? active : 'en'
+  }
+
+  const [langCode, setLangCode] = useState<LanguageCode>(resolveInitialCode)
   const [dataSaver, setDataSaver] = useState(false)
   const [wifiSync, setWifiSync] = useState(true)
   const { logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
+
+  /** Change the UI language, persist preference, and update local state. */
+  const handleLanguageChange = (code: LanguageCode) => {
+    setLangCode(code)
+    i18next.changeLanguage(code)
+    localStorage.setItem('agro_lang', code)
+  }
 
   // Ref for horizontal KPI scroll snap
   const kpiRef = useRef<HTMLDivElement>(null)
@@ -834,8 +860,8 @@ export default function RepProfile() {
             sub="Interface & voice prompts"
             right={
               <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
+                value={langCode}
+                onChange={(e) => handleLanguageChange(e.target.value as LanguageCode)}
                 style={{
                   padding: '6px 10px',
                   borderRadius: 9,
@@ -855,9 +881,9 @@ export default function RepProfile() {
                   backgroundPosition: 'right 8px center',
                 }}
               >
-                <option>English</option>
-                <option>Hindi</option>
-                <option>Marathi</option>
+                {LANGUAGE_OPTIONS.map(({ label, code }) => (
+                  <option key={code} value={code}>{label}</option>
+                ))}
               </select>
             }
           />
