@@ -76,9 +76,11 @@ export default function LogVisit() {
                             color: selectedProducts.includes(p) ? 'white' : 'var(--ink)',
                             border: selectedProducts.includes(p) ? '1px solid var(--primary)' : '1px solid var(--border)',
                             fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                            transition: 'all 200ms ease',
+                            transition: 'all 200ms ease', display: 'inline-flex', alignItems: 'center', gap: 5,
                         }}>
-                            {selectedProducts.includes(p) && '✓ '}{p}
+                            {selectedProducts.includes(p) && (
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M20 6 9 17l-5-5" /></svg>
+                            )}{p}
                         </button>
                     ))}
                 </div>

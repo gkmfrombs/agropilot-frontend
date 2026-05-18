@@ -1,6 +1,44 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { IChev, IMic, TopStrip, ISend, IClose, Eyebrow } from '../components/Shared';
+import { IChev, IMic, TopStrip, ISend, IClose, Eyebrow, PulseDot } from '../components/Shared';
+
+function ScarecrowAvatar({ size = 36 }: { size?: number }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Hat brim */}
+            <ellipse cx="18" cy="11" rx="10" ry="2.5" fill="#5C3D1E" />
+            {/* Hat crown */}
+            <rect x="12" y="3" width="12" height="9" rx="2" fill="#7A5230" />
+            {/* Hat band */}
+            <rect x="12" y="9.5" width="12" height="2" fill="#C9974A" />
+            {/* Straw from hat */}
+            <line x1="10" y1="10" x2="7" y2="7" stroke="#D4A347" strokeWidth="1.2" strokeLinecap="round" />
+            <line x1="26" y1="10" x2="29" y2="7" stroke="#D4A347" strokeWidth="1.2" strokeLinecap="round" />
+            <line x1="18" y1="3" x2="18" y2="1" stroke="#D4A347" strokeWidth="1.2" strokeLinecap="round" />
+            {/* Face */}
+            <circle cx="18" cy="18" r="7" fill="#F5C88A" />
+            {/* Eyes — simple X stitched style */}
+            <line x1="15" y1="16.5" x2="16.5" y2="18" stroke="#5C3D1E" strokeWidth="1.2" strokeLinecap="round" />
+            <line x1="16.5" y1="16.5" x2="15" y2="18" stroke="#5C3D1E" strokeWidth="1.2" strokeLinecap="round" />
+            <line x1="19.5" y1="16.5" x2="21" y2="18" stroke="#5C3D1E" strokeWidth="1.2" strokeLinecap="round" />
+            <line x1="21" y1="16.5" x2="19.5" y2="18" stroke="#5C3D1E" strokeWidth="1.2" strokeLinecap="round" />
+            {/* Smile — stitched curve */}
+            <path d="M15.5 20 Q18 22.5 20.5 20" stroke="#5C3D1E" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+            {/* Cheek patches */}
+            <circle cx="14" cy="19.5" r="1.8" fill="rgba(201,151,74,0.35)" />
+            <circle cx="22" cy="19.5" r="1.8" fill="rgba(201,151,74,0.35)" />
+            {/* Body / shirt */}
+            <rect x="13" y="25" width="10" height="8" rx="2" fill="#2E4A3A" />
+            {/* Shirt patch */}
+            <rect x="15" y="27" width="3" height="2.5" rx="0.5" fill="#4a6a55" />
+            {/* Straw from sleeves */}
+            <line x1="13" y1="27" x2="9" y2="25" stroke="#D4A347" strokeWidth="1.2" strokeLinecap="round" />
+            <line x1="13" y1="28" x2="9" y2="27" stroke="#D4A347" strokeWidth="1.2" strokeLinecap="round" />
+            <line x1="23" y1="27" x2="27" y2="25" stroke="#D4A347" strokeWidth="1.2" strokeLinecap="round" />
+            <line x1="23" y1="28" x2="27" y2="27" stroke="#D4A347" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+    )
+}
 
 interface Message {
     text: string;
@@ -17,8 +55,8 @@ function ChatMessage({ message, isUser, showGraph, delay }: any) {
         <div className="slide-in-l" style={{ animationDelay: `${delay}ms`, display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start', marginBottom: 16 }}>
             {!isUser && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: 12, color: 'white', fontWeight: 700 }}>A</span>
+                    <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--surface-warm)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                        <ScarecrowAvatar size={26} />
                     </div>
                     <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 600, color: 'var(--ink-soft)' }}>AgroPilot</span>
                 </div>
@@ -135,16 +173,19 @@ export default function AIConsultant() {
     };
 
     return (
-        <div style={{ position: 'relative', width: '100%', height: '100%', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ height: '100%', background: 'var(--bg)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {/* Header */}
-            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--surface)', zIndex: 10 }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--surface)', zIndex: 10, flexShrink: 0 }}>
                 <Link to="/" style={{ color: 'var(--ink)', textDecoration: 'none' }}><IChev size={20} style={{ transform: 'rotate(180deg)' }} /></Link>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ color: 'white', fontFamily: 'Plus Jakarta Sans', fontWeight: 700, fontSize: 14 }}>A</span>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--surface-warm)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                    <ScarecrowAvatar size={36} />
                 </div>
                 <div>
                     <h2 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, margin: 0, color: 'var(--ink)' }}>AgroPilot</h2>
-                    <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: 'var(--primary)', margin: 0, fontWeight: 600 }}>● GraphRAG Connected</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
+                        <PulseDot color="var(--primary)" size={5} />
+                        <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: 'var(--primary)', fontWeight: 600 }}>GraphRAG Connected</span>
+                    </div>
                 </div>
             </div>
 
@@ -162,7 +203,7 @@ export default function AIConsultant() {
             </div>
 
             {/* Input */}
-            <div style={{ padding: '14px 18px 24px', background: 'var(--surface)', borderTop: '1px solid var(--border)' }}>
+            <div style={{ padding: '14px 18px env(safe-area-inset-bottom, 20px)', background: 'var(--surface)', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg)', padding: '8px 12px', borderRadius: 24, border: '1px solid var(--border)' }}>
                     <button style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
                         <IMic size={20} />

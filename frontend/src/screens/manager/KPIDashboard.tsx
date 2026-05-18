@@ -149,7 +149,12 @@ export default function KPIDashboard() {
                             <div style={{ ...S, fontSize: 14, fontWeight: 600, color: '#E8E2D4', marginBottom: 8 }}>{d.tehsil}</div>
                             <div style={{ ...S, fontSize: 11, color: 'rgba(200,213,187,0.5)', marginBottom: 4 }}>Digital: <span style={{ color: d.digitalHeat === 'High' ? '#4B8C64' : d.digitalHeat === 'Medium' ? '#C9974A' : 'rgba(200,213,187,0.4)', fontWeight: 700 }}>{d.digitalHeat}</span></div>
                             <div style={{ ...S, fontSize: 11, color: 'rgba(200,213,187,0.5)' }}>Field Visit: <span style={{ color: d.repVisit ? '#4B8C64' : '#E87050', fontWeight: 700 }}>{d.repVisit ? 'Yes' : 'No'}</span></div>
-                            {!d.linked && <div style={{ marginTop: 6, ...S, fontSize: 10, color: '#E87050', fontWeight: 600 }}>⚠ Gap detected</div>}
+                            {!d.linked && (
+                                <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#E87050" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+                                    <span style={{ ...S, fontSize: 10, color: '#E87050', fontWeight: 600 }}>Gap detected</span>
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>

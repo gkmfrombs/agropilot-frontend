@@ -18,7 +18,13 @@ const sevColors: any = {
     MEDIUM: { bg: 'rgba(201,151,74,0.12)', fg: '#C9974A', border: '#C9974A' },
     LOW: { bg: 'rgba(200,213,187,0.08)', fg: 'rgba(200,213,187,0.5)', border: 'rgba(200,213,187,0.2)' },
 };
-const typeIcons: any = { stockout: '📦', demand: '📈', competitor: '⚔️', weather: '🌧️', campaign: '🔥' };
+const typeIconPaths: any = {
+    stockout: 'm2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4M2 7h20',
+    demand: 'M22 7 13.5 15.5 8.5 10.5 2 17M16 7h6v6',
+    competitor: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10',
+    weather: 'M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6M8 14v6M12 16v6',
+    campaign: 'M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1',
+};
 
 export default function AlertManagement() {
     const [tab, setTab] = useState('All');
@@ -82,12 +88,26 @@ export default function AlertManagement() {
                             opacity: alert.resolved ? 0.5 : 1,
                         }}>
                             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                                <span style={{ fontSize: 22 }}>{typeIcons[alert.type]}</span>
+                                <div style={{ width: 36, height: 36, borderRadius: 10, background: sev.bg, border: `1px solid ${sev.border}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={sev.fg} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d={typeIconPaths[alert.type]} />
+                                    </svg>
+                                </div>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                                         <span style={{ padding: '2px 8px', borderRadius: 999, background: sev.bg, color: sev.fg, ...S, fontSize: 10, fontWeight: 700 }}>{alert.severity}</span>
-                                        {alert.escalated && <span style={{ padding: '2px 8px', borderRadius: 999, background: 'rgba(232,112,80,0.15)', color: '#E87050', ...S, fontSize: 10, fontWeight: 700 }}>🚨 ESCALATED</span>}
-                                        {alert.resolved && <span style={{ padding: '2px 8px', borderRadius: 999, background: 'rgba(75,140,100,0.12)', color: '#4B8C64', ...S, fontSize: 10, fontWeight: 700 }}>✓ RESOLVED</span>}
+                                        {alert.escalated && (
+                                            <span style={{ padding: '2px 8px', borderRadius: 999, background: 'rgba(232,112,80,0.15)', color: '#E87050', ...S, fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#E87050" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+                                                ESCALATED
+                                            </span>
+                                        )}
+                                        {alert.resolved && (
+                                            <span style={{ padding: '2px 8px', borderRadius: 999, background: 'rgba(75,140,100,0.12)', color: '#4B8C64', ...S, fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#4B8C64" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                                                RESOLVED
+                                            </span>
+                                        )}
                                         <span style={{ ...S, fontSize: 11, color: 'rgba(200,213,187,0.3)' }}>{alert.time}</span>
                                     </div>
                                     <div style={{ ...S, fontSize: 15, fontWeight: 600, color: '#E8E2D4', marginBottom: 4 }}>{alert.title}</div>

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Morning Briefing — Sygenta Field</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F1E8;
+    --surface: #FFFFFF;
+    --surface-warm: #FAF6EC;
+    --ink: #1A1A17;
+    --ink-soft: #6B6A5F;
+    --primary: #2E4A3A;
+    --primary-soft: #C8D5BB;
+    --accent: #C9974A;
+    --danger: #B85C3C;
+    --warning: #D4A347;
+    --border: #E5DCC9;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #EBE4D2; }
+  body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  button { font-family: inherit; }
+
+  @keyframes pulseRing {
+    0%   { transform: scale(1);   opacity: 0.55; }
+    60%  { transform: scale(2.4); opacity: 0; }
+    100% { transform: scale(2.4); opacity: 0; }
+  }
+  .pulse-ring { animation: pulseRing 2.2s ease-out infinite; transform-origin: center; }
+
+  @keyframes fabRing {
+    0%   { transform: scale(1);   opacity: 0.32; }
+    65%  { transform: scale(1.7); opacity: 0; }
+    100% { transform: scale(1.7); opacity: 0; }
+  }
+  .fab-ring { animation: fabRing 2.6s ease-out infinite; transform-origin: center; }
+
+  @keyframes fabBreathe {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.05); }
+  }
+  .fab-breathe { animation: fabBreathe 2.6s ease-in-out infinite; transform-origin: center; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fade-up { animation: fadeUp 620ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+</style>
+</head>
+<body style="background-color: rgb(165, 201, 118)">
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="briefing.jsx"></script>
+</body>
+</html>

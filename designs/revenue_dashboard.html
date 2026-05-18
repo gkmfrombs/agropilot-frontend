@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Revenue Dashboard — Manager Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=IBM+Plex+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F1E8;
+    --surface: #FFFFFF;
+    --surface-warm: #FAF6EC;
+    --ink: #1A1A17;
+    --ink-soft: #6B6A5F;
+    --primary: #2E4A3A;
+    --primary-soft: #C8D5BB;
+    --accent: #C9974A;
+    --danger: #B85C3C;
+    --warning: #D4A347;
+    --success: #4A6B5D;
+    --border: #E5DCC9;
+  }
+  
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  html, body { margin: 0; padding: 0; background: #2c3a22; overflow: hidden; }
+  body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  button { font-family: inherit; outline: none; border: none; cursor: pointer; background: transparent; padding: 0; }
+  a { text-decoration: none; color: inherit; }
+
+  /* Utilities */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fade-up { animation: fadeUp 600ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+  @keyframes progressGrow {
+    from { width: 0%; }
+    to { width: var(--progress); }
+  }
+  .progress-bar { animation: progressGrow 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  
+  @keyframes barGrow {
+    from { height: 0%; }
+    to { height: var(--h); }
+  }
+  .bar-chart-rect { animation: barGrow 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards; transform-origin: bottom; }
+
+  .glass-header {
+    background: rgba(245, 241, 232, 0.85);
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    border-bottom: 1px solid rgba(229, 220, 201, 0.7);
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.23.0/babel.min.js" crossorigin></script>
+
+<script type="text/babel">
+  const { useState } = React;
+
+  // ===================================================================
+  // Embedded iOS Frame (Mobile)
+  // ===================================================================
+  function IOSStatusBar({ dark = false, time = '9:41' }) {
+    const c = dark ? '#fff' : '#000';
+    return (
+      <div style={{ display: 'flex', gap: 154, alignItems: 'center', justifyContent: 'center', padding: '21px 24px 19px', boxSizing: 'border-box', position: 'relative', zIndex: 20, width: '100%' }}>
+        <div style={{ flex: 1, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 1.5 }}>
+          <span style={{ fontFamily: '-apple-system, "SF Pro", system-ui', fontWeight: 590, fontSize: 17, lineHeight: '22px', color: c }}>{time}</span>
+        </div>
+        <div style={{ flex: 1, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, paddingTop: 1, paddingRight: 1 }}>
+          <svg width="19" height="12" viewBox="0 0 19 12"><rect x="0" y="7.5" width="3.2" height="4.5" rx="0.7" fill={c}/><rect x="4.8" y="5" width="3.2" height="7" rx="0.7" fill={c}/><rect x="9.6" y="2.5" width="3.2" height="9.5" rx="0.7" fill={c}/><rect x="14.4" y="0" width="3.2" height="12" rx="0.7" fill={c}/></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12"><path d="M8.5 3.2C10.8 3.2 12.9 4.1 14.4 5.6L15.5 4.5C13.7 2.7 11.2 1.5 8.5 1.5C5.8 1.5 3.3 2.7 1.5 4.5L2.6 5.6C4.1 4.1 6.2 3.2 8.5 3.2Z" fill={c}/><path d="M8.5 6.8C9.9 6.8 11.1 7.3 12 8.2L13.1 7.1C11.8 5.9 10.2 5.1 8.5 5.1C6.8 5.1 5.2 5.9 3.9 7.1L5 8.2C5.9 7.3 7.1 6.8 8.5 6.8Z" fill={c}/><circle cx="8.5" cy="10.5" r="1.5" fill={c}/></svg>
+          <svg width="27" height="13" viewBox="0 0 27 13"><rect x="0.5" y="0.5" width="23" height="12" rx="3.5" stroke={c} strokeOpacity="0.35" fill="none"/><rect x="2" y="2" width="20" height="9" rx="2" fill={c}/><path d="M25 4.5V8.5C25.8 8.2 26.5 7.2 26.5 6.5C26.5 5.8 25.8 4.8 25 4.5Z" fill={c} fillOpacity="0.4"/></svg>
+        </div>
+      </div>
+    );
+  }
+
+  function IOSDevice({ children, width = 390, height = 844, dark = false }) {
+    return (
+      <div style={{ width, height, borderRadius: 48, overflow: 'hidden', position: 'relative', background: dark ? '#000' : 'var(--bg)', boxShadow: '0 40px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.12)', fontFamily: '-apple-system, system-ui, sans-serif', WebkitFontSmoothing: 'antialiased' }}>
+        <div style={{ position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)', width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 50 }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}><IOSStatusBar dark={dark} /></div>
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>{children}</div>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 60, height: 34, display: 'flex', justifyContent: 'center', alignItems: 'flex-end', paddingBottom: 8, pointerEvents: 'none' }}>
+          <div style={{ width: 139, height: 5, borderRadius: 100, background: dark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.25)' }} />
+        </div>
+      </div>
+    );
+  }
+
+  // ===================================================================
+  // Icons
+  // ===================================================================
+  const Icon = ({ d, size = 20, stroke = 'currentColor', fill = 'none', vb = '0 0 24 24', style, strokeWidth="1.75" }) => (
+    <svg width={size} height={size} viewBox={vb} fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={style}>{d}</svg>
+  );
+  const IMap = (p) => <Icon {...p} d={<><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14"/><path d="M15 6v14"/></>}/>;
+  const IBarChart = (p) => <Icon {...p} d={<><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></>}/>;
+  const IUsers = (p) => <Icon {...p} d={<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>}/>;
+  const IMegaphone = (p) => <Icon {...p} d={<><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></>}/>;
+  const ITrendingUp = (p) => <Icon {...p} d={<><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></>}/>;
+  const IBell = (p) => <Icon {...p} d={<><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></>}/>;
+
+  // Manager Bottom Nav
+  function BottomNav({ activeId }) {
+    const items = [
+      { id: 'dash', label: 'KPIs', I: IBarChart, href: '#' },
+      { id: 'map', label: 'Heatmap', I: IMap, href: 'territory_heatmap.html' },
+      { id: 'reps', label: 'Team', I: IUsers, href: '#' },
+      { id: 'camp', label: 'Campaigns', I: IMegaphone, href: '#' },
+    ];
+    return (
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 40, paddingBottom: 22, paddingTop: 30, paddingLeft: 14, paddingRight: 14, background: 'linear-gradient(180deg, rgba(245,241,232,0) 0%, rgba(245,241,232,0.92) 30%, var(--bg) 62%)', pointerEvents: 'none' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: 22, border: '1px solid rgba(229,220,201,0.6)', boxShadow: '0 2px 4px rgba(20,18,12,0.06), 0 18px 40px rgba(20,18,12,0.14)', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', pointerEvents: 'auto' }}>
+          {items.map(({ id, label, I, href }) => {
+            const active = id === activeId;
+            return (
+              <a key={id} href={href} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, fontFamily: 'Plus Jakarta Sans', fontSize: 10.5, fontWeight: 600, color: active ? 'var(--primary)' : 'var(--ink-soft)', cursor: 'pointer', position: 'relative', textDecoration: 'none', transform: active ? 'scale(1.04)' : 'scale(1)', transition: 'all 200ms' }}>
+                <I size={22} stroke={active ? '#2E4A3A' : '#6B6A5F'}/>
+                <span>{label}</span>
+                {active && <span style={{ position: 'absolute', bottom: -4, width: 16, height: 2.5, borderRadius: 99, background: 'var(--primary)' }}/>}
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  function SectionH({ children }) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 16, padding: '0 2px' }}>
+        <span style={{ width: 6, height: 6, borderRadius: 99, background: 'var(--accent)', display: 'inline-block' }}/>
+        <h2 style={{ fontFamily: 'Fraunces', fontWeight: 600, fontSize: 17, letterSpacing: '-0.01em', color: 'var(--ink)', margin: 0, fontVariationSettings: '"opsz" 18' }}>
+          {children}
+        </h2>
+      </div>
+    );
+  }
+
+  // ===================================================================
+  // Dashboard Screen
+  // ===================================================================
+  function RevenueDashboard() {
+    
+    // Mock Chart Data
+    const chartData = [
+      { m: 'May', val: 0.8 }, { m: 'Jun', val: 0.9 },
+      { m: 'Jul', val: 1.2 }, { m: 'Aug', val: 1.5 },
+      { m: 'Sep', val: 1.3 }, { m: 'Oct', val: 1.8 } // Current
+    ];
+    const maxVal = 2.0;
+
+    return (
+      <div className="no-scrollbar" style={{ position: 'relative', width: '100%', minHeight: '100%', background: 'var(--bg)', overflowY: 'auto' }}>
+        
+        {/* Paper Grain Overlay */}
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.55, zIndex: 1,
+          backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.09 0 0 0 0 0.07 0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`,
+        }}/>
+
+        {/* Sticky Header */}
+        <div className="glass-header" style={{ position: 'sticky', top: 0, zIndex: 50, paddingTop: 52 }}>
+          <div style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h1 style={{ fontFamily: 'Fraunces', fontSize: 26, fontWeight: 500, margin: 0, color: 'var(--ink)', letterSpacing: '-0.02em', fontVariationSettings: '"opsz" 36' }}>
+                Revenue & KPIs
+              </h1>
+              <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink-soft)', fontWeight: 600 }}>
+                Northern District · October
+              </div>
+            </div>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(20,18,12,0.04)' }}>
+              <img src="https://i.pravatar.cc/150?img=11" alt="Profile" style={{ width: 44, height: 44, borderRadius: '50%' }} />
+            </div>
+          </div>
+        </div>
+
+        <div style={{ position: 'relative', zIndex: 2, padding: '24px 18px 140px', display: 'flex', flexDirection: 'column', gap: 28 }}>
+          
+          {/* 1. Hero KPI Card */}
+          <div className="fade-up" style={{
+            background: 'var(--primary)', borderRadius: 28, padding: '28px 24px',
+            boxShadow: '0 12px 32px rgba(46,74,58,0.25)', position: 'relative', overflow: 'hidden'
+          }}>
+            <div style={{ position: 'absolute', right: -20, top: -20, opacity: 0.1 }}>
+               <ITrendingUp size={140} stroke="#fff" />
+            </div>
+
+            <div style={{ position: 'relative', zIndex: 2 }}>
+              <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 800, color: 'var(--primary-soft)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+                MTD Revenue
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 24 }}>
+                <span className="mono" style={{ fontSize: 44, fontWeight: 700, color: 'var(--accent)', lineHeight: 1 }}>₹1.8</span>
+                <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 16, fontWeight: 600, color: '#fff' }}>Crore</span>
+              </div>
+
+              {/* Target Progress */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: '#fff', fontWeight: 600 }}>Target: ₹2.1 Cr</span>
+                  <span className="mono" style={{ fontSize: 13, color: 'var(--primary-soft)', fontWeight: 600 }}>85%</span>
+                </div>
+                <div style={{ height: 6, background: 'rgba(255,255,255,0.2)', borderRadius: 99, overflow: 'hidden' }}>
+                  <div className="progress-bar" style={{ height: '100%', background: 'var(--accent)', '--progress': '85%', borderRadius: 99 }}/>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Monthly Trend Chart */}
+          <div className="fade-up" style={{ animationDelay: '100ms' }}>
+            <SectionH>Monthly Trend</SectionH>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 24, padding: '24px 20px', boxShadow: '0 4px 16px rgba(20,18,12,0.03)' }}>
+              
+              <div style={{ display: 'flex', alignItems: 'flex-end', height: 160, gap: 14, marginTop: 10 }}>
+                {chartData.map((d, i) => {
+                  const hPct = `${(d.val / maxVal) * 100}%`;
+                  const isCurrent = i === chartData.length - 1;
+                  return (
+                    <div key={d.m} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                      <div className="mono" style={{ fontSize: 11, color: isCurrent ? 'var(--primary)' : 'var(--ink-soft)', fontWeight: 700, marginBottom: 8, opacity: isCurrent ? 1 : 0 }}>
+                        {d.val}
+                      </div>
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'flex-end', background: 'var(--surface-warm)', borderRadius: 8, position: 'relative', overflow: 'hidden' }}>
+                         <div className="bar-chart-rect" style={{
+                           width: '100%', background: isCurrent ? 'var(--primary)' : 'var(--primary-soft)',
+                           '--h': hPct, borderRadius: 8
+                         }}/>
+                      </div>
+                      <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: 600, color: 'var(--ink-soft)', marginTop: 12 }}>
+                        {d.m}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+            </div>
+          </div>
+
+          {/* 3. Top Performers Split */}
+          <div className="fade-up" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, animationDelay: '150ms' }}>
+            
+            {/* Top Products */}
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 24, padding: '20px 16px', boxShadow: '0 4px 16px rgba(20,18,12,0.03)' }}>
+              <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 800, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Top Products</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {[ { n: 'Topik 15 WP', v: '₹42L' }, { n: 'Score 250 EC', v: '₹28L' }, { n: 'Actara 25 WG', v: '₹14L' } ].map((p, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontFamily: 'Fraunces', fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{p.n}</div>
+                    <div className="mono" style={{ fontSize: 14, fontWeight: 600, color: 'var(--primary)' }}>{p.v}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Top Reps */}
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 24, padding: '20px 16px', boxShadow: '0 4px 16px rgba(20,18,12,0.03)' }}>
+              <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 800, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Top Reps (MTD)</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {[ { n: 'Amit Singh', v: '92%' }, { n: 'Ravi Kumar', v: '88%' }, { n: 'Pooja V.', v: '81%' } ].map((p, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{p.n}</div>
+                    <div className="mono" style={{ fontSize: 13, fontWeight: 600, color: 'var(--success)' }}>{p.v}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <BottomNav activeId="dash" />
+
+      </div>
+    );
+  }
+
+  // ===================================================================
+  // Mount Wrap
+  // ===================================================================
+  function App() {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, background: 'radial-gradient(at 28% 14%, #586b3f 0%, #3f5230 50%, #2c3a22 100%)' }}>
+        <IOSDevice>
+          <RevenueDashboard />
+        </IOSDevice>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

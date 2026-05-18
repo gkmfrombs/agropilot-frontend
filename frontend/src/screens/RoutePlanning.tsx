@@ -73,7 +73,7 @@ export default function RoutePlanning() {
             <div style={{ padding: '0 18px 12px', display: 'flex', gap: 8 }}>
                 {(['all', 'retailer', 'farmer'] as const).map(f => (
                     <button key={f} onClick={() => setFilter(f)} style={{ padding: '7px 14px', borderRadius: 999, border: filter === f ? '1px solid var(--primary)' : '1px solid var(--border)', background: filter === f ? 'var(--primary)' : 'var(--surface)', color: filter === f ? 'white' : 'var(--ink)', fontFamily: 'Plus Jakarta Sans', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize' as const }}>
-                        {f === 'all' ? 'All' : f === 'retailer' ? '🏪 Retailers' : '🌾 Farmers'}
+                        {f === 'all' ? 'All' : f === 'retailer' ? 'Retailers' : 'Farmers'}
                     </button>
                 ))}
             </div>

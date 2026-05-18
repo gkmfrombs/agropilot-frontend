@@ -83,10 +83,16 @@ export default function TerritoryHeatmap() {
                                         <span style={{ padding: '3px 8px', borderRadius: 999, background: st.bg, color: st.fg, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em' }}>{st.label}</span>
                                     </div>
                                     {activeLayers.includes('Demand Signals') && t.stockouts > 0 && (
-                                        <div style={{ marginTop: 6, ...S, fontSize: 10, color: '#E87050', fontWeight: 600 }}>📦 {t.stockouts} stockout{t.stockouts > 1 ? 's' : ''}</div>
+                                        <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#E87050" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M2 7h20" /></svg>
+                                            <span style={{ ...S, fontSize: 10, color: '#E87050', fontWeight: 600 }}>{t.stockouts} stockout{t.stockouts > 1 ? 's' : ''}</span>
+                                        </div>
                                     )}
                                     {activeLayers.includes('Competitor Activity') && t.competitor > 0 && (
-                                        <div style={{ marginTop: 4, ...S, fontSize: 10, color: '#C9974A', fontWeight: 600 }}>⚔️ {t.competitor} competitor sighting{t.competitor > 1 ? 's' : ''}</div>
+                                        <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#C9974A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /></svg>
+                                            <span style={{ ...S, fontSize: 10, color: '#C9974A', fontWeight: 600 }}>{t.competitor} competitor sighting{t.competitor > 1 ? 's' : ''}</span>
+                                        </div>
                                     )}
                                 </button>
                             );

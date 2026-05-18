@@ -1,0 +1,473 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #F5F1E8;
+  --surface: #FFFFFF;
+  --surface-warm: #FAF6EC;
+  --ink: #1A1A17;
+  --ink-soft: #6B6A5F;
+  --primary: #2E4A3A;
+  --primary-soft: #C8D5BB;
+  --accent: #C9974A;
+  --danger: #B85C3C;
+  --warning: #D4A347;
+  --border: #E5DCC9;
+}
+
+[data-theme="dark"] {
+  --bg: #0f1f16;
+  --surface: #1a2e22;
+  --surface-warm: #152819;
+  --ink: #f0ece0;
+  --ink-soft: #8fa888;
+  --primary: #5a9a72;
+  --primary-soft: #1e3828;
+  --accent: #d4a55e;
+  --danger: #d4765a;
+  --warning: #d4b060;
+  --border: #243d2a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(at 28% 14%, #586b3f 0%, #3f5230 50%, #2c3a22 100%);
+  min-height: 100vh;
+}
+
+[data-theme="dark"] body,
+[data-theme="dark"] html {
+  background: #0a1810;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+/* =========== REP APP — CENTERED CARD =========== */
+.rep-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px 16px;
+}
+
+.rep-card {
+  width: 100%;
+  max-width: 480px;
+  min-height: calc(100vh - 64px);
+  background: var(--bg);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.22), 0 0 0 1px rgba(255,255,255,0.06);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Mobile: full screen, no card chrome */
+@media (max-width: 600px) {
+  .rep-shell {
+    padding: 0;
+    align-items: stretch;
+  }
+  .rep-card {
+    max-width: 100%;
+    min-height: 100vh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+/* Legacy class kept for compat */
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+/* =========== SCROLLBAR HIDE =========== */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* =========== ANIMATIONS =========== */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 620ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@keyframes slideInL {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.slide-in-l { animation: slideInL 520ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@keyframes kenBurns {
+  0% { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.06) translate(-1%, -1%); }
+}
+.ken-burns { animation: kenBurns 12s ease-out both; transform-origin: center; }
+
+@keyframes pulseRing {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+.pulse-ring { animation: pulseRing 2.2s ease-out infinite; }
+
+@keyframes fabRing {
+  0% { transform: scale(1); opacity: 0.4; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+.fab-ring { animation: fabRing 2.6s ease-out infinite; }
+
+@keyframes fabBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+.fab-breathe { animation: fabBreathe 2.6s ease-in-out infinite; }
+
+@keyframes caretBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.caret-blink { animation: caretBlink 0.9s steps(1, start) infinite; }
+
+@keyframes fabPulse {
+  0%, 100% { transform: scale(1.06); box-shadow: 0 0 0 0 rgba(46,74,58,0.4); }
+  50% { transform: scale(1.12); box-shadow: 0 0 0 12px rgba(46,74,58,0); }
+}
+.fab-pulse { animation: fabPulse 1.2s ease-in-out infinite; }
+
+@keyframes travelPulse {
+  0% { offset-distance: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+@keyframes dashMove {
+  to { stroke-dashoffset: -20; }
+}
+.route-line {
+  stroke-dasharray: 6 6;
+  animation: dashMove 1s linear infinite;
+}
+
+@keyframes scanLine {
+  0%   { top: 0%;   opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+.scan-line { animation: scanLine 2s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+
+@keyframes slightBreathe {
+  0%, 100% { transform: scale(1.02); }
+  50%       { transform: scale(1.05); }
+}
+.live-camera { animation: slightBreathe 8s ease-in-out infinite; transform-origin: center; }
+
+@keyframes popIn {
+  0%   { transform: scale(0.96); opacity: 0.5; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+.val-update { animation: popIn 250ms cubic-bezier(0.16, 1, 0.3, 1); }
+
+@keyframes edgeDraw {
+  from { stroke-dashoffset: 200; }
+  to   { stroke-dashoffset: 0; }
+}
+.edge-draw {
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: edgeDraw 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes edgePulse {
+  0%   { offset-distance: 0%;   opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+.edge-pulse { animation: edgePulse 2.8s ease-in-out infinite; }
+
+@keyframes nodeIn {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.node-in { animation: nodeIn 420ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@keyframes edgeLabel {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.edge-label { animation: edgeLabel 400ms ease both; }
+
+@keyframes centerGlowAnim {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 0.15; }
+}
+.center-glow { animation: centerGlowAnim 3s ease-in-out infinite; }
+
+@keyframes ringSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.ring-spin      { animation: ringSpin 1.2s linear infinite; }
+.ring-spin-slow { animation: ringSpin 6s linear infinite; }
+
+@keyframes checkPop {
+  0%   { transform: scale(0); }
+  60%  { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+.check-pop { display: inline-flex; animation: checkPop 400ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* =========== SKELETON SHIMMER =========== */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--border) 0%, #ede7d9 50%, var(--border) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 8px;
+  display: block;
+}
+
+/* =========== PAGE TRANSITION =========== */
+@keyframes pageIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.page-in { animation: pageIn 300ms ease both; }
+
+/* =========== MICRO-INTERACTIONS =========== */
+.press-scale {
+  transition: transform 100ms ease;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+.press-scale:active { transform: scale(0.96); }
+
+.card-hover {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(20,18,12,0.11) !important;
+  }
+}
+.card-hover:active { transform: scale(0.985) !important; }
+
+/* =========== TOAST =========== */
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateY(-14px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toastSlideOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(-10px) scale(0.95); }
+}
+.toast-enter { animation: toastSlideIn 280ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.toast-exit  { animation: toastSlideOut 200ms ease both; }
+
+/* =========== PULL-TO-REFRESH =========== */
+@keyframes ptrSpin {
+  to { transform: rotate(360deg); }
+}
+.ptr-spinner { animation: ptrSpin 0.7s linear infinite; display: inline-block; }
+
+@keyframes arrowBounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(4px); }
+}
+.arrow-bounce { animation: arrowBounce 1s ease-in-out infinite; display: inline-flex; }
+
+@keyframes dotPulse {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fabBreatheMic {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+.fab-breathe-mic { animation: fabBreatheMic 2.6s ease-in-out infinite; }
+
+/* =========== RESPONSIVE LAYOUT =========== */
+
+/* screen-root: mobile needs space for sticky TopStrip, desktop needs none */
+.screen-root { padding-top: 48px; animation: pageIn 280ms ease both; }
+
+/* rep-layout: full-page wrapper replacing rep-shell/rep-card */
+.rep-layout {
+  min-height: 100vh;
+  background: var(--bg);
+}
+.rep-content {
+  min-height: 100vh;
+}
+
+/* ---- TOP NAV (desktop only) ---- */
+.top-nav {
+  display: none;
+}
+
+/* ---- BOTTOM NAV (mobile only) ---- */
+.bottom-nav-wrap {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 40;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -1px 0 rgba(0,0,0,0.06), 0 -4px 16px rgba(0,0,0,0.04);
+  display: flex;
+  align-items: stretch;
+  height: 62px;
+  padding: 0 4px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-decoration: none;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 6px 0;
+  position: relative;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: #8A8A8A;
+  transition: color 150ms ease;
+}
+.bottom-nav-item.active { color: #2E4A3A; }
+.bottom-nav-item.primary-item {
+  color: #fff;
+}
+.bottom-nav-primary-bubble {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: #2E4A3A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(46,74,58,0.28);
+  margin-bottom: 2px;
+}
+
+/* =========== DESKTOP BREAKPOINT =========== */
+@media (min-width: 768px) {
+  html, body {
+    background: var(--bg);
+  }
+
+  .rep-content {
+    padding-top: 64px;
+    max-width: 960px;
+    margin: 0 auto;
+    padding-left: 32px;
+    padding-right: 32px;
+    box-sizing: border-box;
+  }
+
+  /* Hide mobile-only elements */
+  .bottom-nav-wrap { display: none !important; }
+  .top-strip-wrap  { display: none !important; }
+  .screen-root     { padding-top: 0; }
+
+  /* Show desktop nav */
+  .top-nav {
+    display: flex;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 64px;
+    z-index: 100;
+    background: color-mix(in srgb, var(--bg) 94%, transparent);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+  }
+  .top-nav-inner {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .top-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .top-nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 13px;
+    border-radius: 10px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--ink-soft);
+    transition: background 140ms ease, color 140ms ease;
+    white-space: nowrap;
+  }
+  .top-nav-link:hover { background: var(--surface-warm); color: var(--ink); }
+  .top-nav-link.active { background: var(--primary-soft); color: var(--primary); }
+}
+
+@media (max-width: 767px) {
+  /* rep-layout on mobile: full screen, keep original dark bg */
+  html, body { background: var(--bg); }
+  .rep-layout { background: var(--bg); }
+
+  /* ensure screen content doesn't go under fixed bottom nav */
+  .rep-content { padding-bottom: 80px; }
+}

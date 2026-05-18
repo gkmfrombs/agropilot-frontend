@@ -110,7 +110,7 @@ export default function CampaignPerformance() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
                 {campaigns.map(c => {
                     const statusColor = c.status === 'strong' ? '#4B8C64' : c.status === 'moderate' ? '#C9974A' : c.status === 'plateau' ? 'rgba(200,213,187,0.4)' : '#E87050';
-                    const statusLabel = c.status === 'strong' ? '● Strong' : c.status === 'moderate' ? '● Moderate' : c.status === 'plateau' ? '● Plateauing' : '⚠ Underperforming';
+                    const statusLabel = c.status === 'strong' ? 'Strong' : c.status === 'moderate' ? 'Moderate' : c.status === 'plateau' ? 'Plateauing' : 'Underperforming';
                     return (
                         <button key={c.id} onClick={() => setSelected(c)} style={{
                             padding: '20px', borderRadius: 18, cursor: 'pointer', textAlign: 'left',
@@ -136,7 +136,10 @@ export default function CampaignPerformance() {
                                     <div style={{ ...S, fontSize: 10, color: 'rgba(200,213,187,0.3)' }}>Sales ∆</div>
                                 </div>
                             </div>
-                            <div style={{ marginTop: 10, ...S, fontSize: 11, fontWeight: 600, color: statusColor }}>{statusLabel}</div>
+                            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, display: 'inline-block', flexShrink: 0 }} />
+                                <span style={{ ...S, fontSize: 11, fontWeight: 600, color: statusColor }}>{statusLabel}</span>
+                            </div>
                         </button>
                     );
                 })}
@@ -202,7 +205,10 @@ export default function CampaignPerformance() {
             {/* Underperforming flags */}
             {campaigns.filter(c => c.status === 'underperforming' || c.status === 'plateau').length > 0 && (
                 <div style={{ marginTop: 28, padding: '20px', borderRadius: 18, background: 'rgba(232,112,80,0.04)', border: '1px solid rgba(232,112,80,0.1)' }}>
-                    <div style={{ ...S, fontSize: 13, fontWeight: 700, color: '#E87050', marginBottom: 12 }}>⚠ Campaign Flags</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E87050" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+                        <span style={{ ...S, fontSize: 13, fontWeight: 700, color: '#E87050' }}>Campaign Flags</span>
+                    </div>
                     {campaigns.filter(c => c.status === 'underperforming' || c.status === 'plateau').map(c => (
                         <div key={c.id} style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(232,112,80,0.04)', border: '1px solid rgba(232,112,80,0.06)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <div>

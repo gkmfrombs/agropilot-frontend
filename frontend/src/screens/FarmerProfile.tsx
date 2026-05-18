@@ -11,12 +11,12 @@ function ProfileHeader() {
                 <IChev size={16} style={{ transform: 'rotate(180deg)' }} />
                 <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600 }}>Back</span>
             </Link>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{ width: 64, height: 64, borderRadius: '50%', background: `center/cover url(${PHOTO_FARMER})`, border: '3px solid white', boxShadow: '0 4px 14px rgba(0,0,0,0.1)', flex: 'none' }} />
-                <div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                <div style={{ width: 68, height: 68, borderRadius: '50%', backgroundImage: `url(${PHOTO_FARMER})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', border: '3px solid var(--primary-soft)', boxShadow: '0 4px 14px rgba(0,0,0,0.12)', flex: 'none' }} />
+                <div style={{ paddingTop: 4 }}>
                     <h1 style={{ fontFamily: 'Fraunces', fontSize: 24, fontWeight: 500, color: 'var(--ink)', margin: '0 0 4px' }}>Ramesh Yadav</h1>
                     <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink-soft)' }}>Bhatpura, Hardoi · 42 yrs</div>
-                    <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: 'var(--primary)', fontWeight: 600, marginTop: 2 }}>Wheat (HD-2967) · 3.2 acres</div>
+                    <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: 'var(--primary)', fontWeight: 600, marginTop: 3 }}>Wheat (HD-2967) · 3.2 acres</div>
                 </div>
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>

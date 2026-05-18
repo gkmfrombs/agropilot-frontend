@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../../components/AuthContext';
 import { Icon } from '../../components/Shared';
@@ -21,6 +21,65 @@ const navItems = [
 export default function ManagerLayout() {
     const { name, logout } = useAuth();
     const location = useLocation();
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth <= 768);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
+
+    if (isMobile) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: '#0F1A14', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                {/* Mobile top bar */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: '#162118', borderBottom: '1px solid rgba(200,213,187,0.08)', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C8D5BB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 1c1 2 2 4.5 2 8 0 5.5-4.78 11-10 11Z" />
+                            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+                        </svg>
+                        <span style={{ fontFamily: 'Fraunces', fontSize: 17, fontWeight: 500, color: '#E8E2D4' }}>AgroPilot</span>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(201,151,74,0.8)', textTransform: 'uppercase', letterSpacing: '0.12em', marginTop: 2 }}>Manager</span>
+                    </div>
+                    <button onClick={logout} style={{
+                        padding: '8px 14px', borderRadius: 8,
+                        background: 'rgba(184,92,60,0.22)', border: '1px solid rgba(184,92,60,0.4)',
+                        color: '#E8896A', fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: 700,
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                        letterSpacing: '0.01em',
+                    }}>
+                        <ILogOut size={14} /> Sign Out
+                    </button>
+                </div>
+
+                {/* Content */}
+                <main style={{ flex: 1, overflow: 'auto', background: '#0F1A14' }} className="no-scrollbar">
+                    <Outlet />
+                </main>
+
+                {/* Mobile bottom nav */}
+                <nav style={{ display: 'flex', background: '#162118', borderTop: '1px solid rgba(200,213,187,0.08)', flexShrink: 0 }}>
+                    {navItems.map(item => {
+                        const active = item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
+                        return (
+                            <Link key={item.path} to={item.path} style={{
+                                flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                                padding: '10px 4px 12px', textDecoration: 'none',
+                                color: active ? '#C8D5BB' : 'rgba(200,213,187,0.3)',
+                                borderTop: active ? '2px solid #C9974A' : '2px solid transparent',
+                                transition: 'all 150ms',
+                            }}>
+                                <item.icon size={20} stroke={active ? '#C8D5BB' : 'rgba(200,213,187,0.3)'} />
+                                <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.04em' }}>{item.label.split(' ')[0]}</span>
+                            </Link>
+                        );
+                    })}
+                </nav>
+            </div>
+        );
+    }
 
     return (
         <div style={{ display: 'flex', height: '100vh', background: '#0F1A14', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>

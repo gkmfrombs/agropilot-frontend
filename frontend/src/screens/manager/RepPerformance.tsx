@@ -150,7 +150,10 @@ export default function RepPerformance() {
                         {/* AI Flags */}
                         {selectedRep.issues.length > 0 && (
                             <div>
-                                <div style={{ ...S, fontSize: 11, fontWeight: 700, color: '#E87050', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>⚠ AI-Flagged Issues</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E87050" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+                                    <span style={{ ...S, fontSize: 11, fontWeight: 700, color: '#E87050', textTransform: 'uppercase', letterSpacing: '0.1em' }}>AI-Flagged Issues</span>
+                                </div>
                                 {selectedRep.issues.map((issue, i) => (
                                     <div key={i} style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(184,92,60,0.06)', border: '1px solid rgba(184,92,60,0.1)', marginBottom: 6, ...S, fontSize: 13, color: '#E87050' }}>
                                         {issue}
