@@ -24,6 +24,7 @@ body {
   padding: 0;
   background: #2c3a22;
   height: 100%;
+  min-height: 100vh;
 }
 
 body {
@@ -43,21 +44,34 @@ select {
   font-family: inherit;
 }
 
-/* =========== APP CONTAINER — RESPONSIVE =========== */
+/* =========== APP CONTAINER — FULL RESPONSIVE =========== */
+
+/* Desktop: full viewport, parchment bg */
 .app-container {
+  width: 100%;
   min-height: 100vh;
+  background: var(--bg);
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32px;
-  background: radial-gradient(at 28% 14%, #586b3f 0%, #3f5230 50%, #2c3a22 100%);
+  flex-direction: column;
 }
 
+/* The content shell — on desktop uses sidebar layout */
+.app-shell {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  min-height: 100vh;
+}
+
+/* Mobile: full screen stacked */
 @media (max-width: 768px) {
   .app-container {
-    padding: 0;
-    align-items: stretch;
     background: var(--bg);
+  }
+  .app-shell {
+    min-height: 100dvh;
   }
 }
 
@@ -68,6 +82,26 @@ select {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* =========== DESKTOP MAIN CONTENT OFFSET =========== */
+.main-content {
+  flex: 1;
+  background: var(--bg);
+  overflow-y: auto;
+  min-height: 100vh;
+}
+
+@media (min-width: 769px) {
+  .main-content {
+    margin-left: 220px;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+  }
 }
 
 /* =========== ANIMATIONS =========== */

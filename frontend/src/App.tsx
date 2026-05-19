@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './components/AuthContext'
 import { LanguageProvider } from './lib/i18n'
@@ -22,30 +23,51 @@ import RepPerformance from './screens/manager/RepPerformance';
 import AlertManagement from './screens/manager/AlertManagement';
 import CampaignPerformance from './screens/manager/CampaignPerformance';
 
+import { SideNav } from './components/Shared';
+
 function RepApp() {
   return (
     <div className="app-container">
       <IOSDevice width={390} height={844}>
-        <Routes>
-          <Route path="/" element={<MorningBriefing />} />
-          <Route path="/route" element={<RoutePlanning />} />
-          <Route path="/chat" element={<AIConsultant />} />
-          <Route path="/alerts" element={<AlertsFeed />} />
-          <Route path="/me" element={<RepProfile />} />
-          <Route path="/alert" element={<PredictiveAlert />} />
-          <Route path="/farmer/:id" element={<FarmerProfile />} />
-          <Route path="/retailer/:id" element={<RetailerProfile />} />
-          <Route path="/visit" element={<VisitCopilot />} />
-          <Route path="/log-visit" element={<LogVisit />} />
-          <Route path="/scanner" element={<CropScanner />} />
-          <Route path="/calculator" element={<YieldCalculator />} />
-          <Route path="/profile" element={<FarmerProfile />} />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
+        {/* Desktop sidebar — hidden on mobile via CSS */}
+        <SideNavWrapper />
+        {/* Main content area */}
+        <main className="main-content">
+          <Routes>
+            <Route path="/" element={<MorningBriefing />} />
+            <Route path="/route" element={<RoutePlanning />} />
+            <Route path="/chat" element={<AIConsultant />} />
+            <Route path="/alerts" element={<AlertsFeed />} />
+            <Route path="/me" element={<RepProfile />} />
+            <Route path="/alert" element={<PredictiveAlert />} />
+            <Route path="/farmer/:id" element={<FarmerProfile />} />
+            <Route path="/retailer/:id" element={<RetailerProfile />} />
+            <Route path="/visit" element={<VisitCopilot />} />
+            <Route path="/log-visit" element={<LogVisit />} />
+            <Route path="/scanner" element={<CropScanner />} />
+            <Route path="/calculator" element={<YieldCalculator />} />
+            <Route path="/profile" element={<FarmerProfile />} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </main>
       </IOSDevice>
     </div>
   );
 }
+
+function SideNavWrapper() {
+  const [isDesk, setIsDesk] = React.useState(() =>
+    typeof window !== 'undefined' && window.innerWidth >= 769
+  );
+  React.useEffect(() => {
+    const handler = () => setIsDesk(window.innerWidth >= 769);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  if (!isDesk) return null;
+  return <SideNav />;
+}
+
 
 function ManagerApp() {
   return (

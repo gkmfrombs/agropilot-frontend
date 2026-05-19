@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { IChev, IMic, TopStrip, ISend, IClose, Eyebrow, PulseDot } from '../components/Shared';
 import { useTranslation } from '../lib/i18n';
 
@@ -145,10 +145,30 @@ export default function AIConsultant() {
     const [messages, setMessages] = useState<Message[]>(initialMessages);
     const [input, setInput] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
+    const location = useLocation();
+    const scanHandled = useRef(false);
 
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }, [messages]);
+
+    // Handle scan context from CropScanner navigation
+    useEffect(() => {
+        const state = location.state as any;
+        if (state?.scanContext && !scanHandled.current) {
+            scanHandled.current = true;
+            const ctx = state.scanContext;
+            setMessages(prev => [...prev, { text: ctx, isUser: true }]);
+            setTimeout(() => {
+                setMessages(prev => [...prev, {
+                    text: "Based on the scan results, here is my detailed recommendation. The product I've suggested is the best match for this disease at the current severity level. Apply it as directed — timing is critical for maximum efficacy. Would you like to know about dosage adjustments, alternative products, or nearby stock availability?",
+                    isUser: false,
+                    hasGraph: true,
+                }]);
+            }, 1000);
+        }
+    }, [location.state]);
+
 
     const sendMessage = () => {
         if (!input.trim()) return;
