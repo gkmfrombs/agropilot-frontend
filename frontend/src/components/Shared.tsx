@@ -36,35 +36,123 @@ export const IShare = (p: IconProps) => <Icon {...p} d={<><circle cx="18" cy="5"
 export const ITarget = (p: IconProps) => <Icon {...p} d={<><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></>} />;
 export const IBarChart = (p: IconProps) => <Icon {...p} d={<><line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" /></>} />;
 
-// ===================================================================
-// Common UI Patterns
-// ===================================================================
-export const PulseDot = ({ color = '#B85C3C', size = 6 }) => (
-    <span style={{ position: 'relative', display: 'inline-flex', width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-        <span className="pulse-ring" style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: color }} />
-        <span style={{ position: 'relative', width: size, height: size, borderRadius: '50%', background: color }} />
-    </span>
-);
+// ── Desktop sidebar breakpoint (matches CSS) ────────────────────────
+const DESK = '(min-width: 769px)';
 
-export const Eyebrow = ({ children, color = 'var(--ink-soft)' }: any) => (
-    <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, color, letterSpacing: '0.18em', textTransform: 'uppercase' as const }}>{children}</span>
-);
+// Simple hook to detect desktop
+function useDesktop() {
+    const [isDesk, setIsDesk] = React.useState(() =>
+        typeof window !== 'undefined' && window.matchMedia(DESK).matches
+    );
+    React.useEffect(() => {
+        const mq = window.matchMedia(DESK);
+        const handler = (e: MediaQueryListEvent) => setIsDesk(e.matches);
+        mq.addEventListener('change', handler);
+        return () => mq.removeEventListener('change', handler);
+    }, []);
+    return isDesk;
+}
 
-export const WheatStalk = ({ size = 64, color = '#1A1A17', opacity = 0.14, style }: any) => (
-    <svg width={size} height={size * 1.4} viewBox="0 0 64 88" fill="none" style={{ opacity, ...style }}>
-        <line x1="32" y1="6" x2="32" y2="84" stroke={color} strokeWidth="1.1" strokeLinecap="round" />
-        {[0, 1, 2, 3, 4, 5, 6, 7].map(i => (
-            <g key={i} transform={`translate(32, ${12 + i * 8.5})`}>
-                <path d="M0 0 Q -7 -3 -11 -10" stroke={color} strokeWidth="1.1" strokeLinecap="round" fill="none" />
-                <path d="M0 0 Q  7 -3  11 -10" stroke={color} strokeWidth="1.1" strokeLinecap="round" fill="none" />
-                <ellipse cx="-8" cy="-6" rx="3.4" ry="1.6" stroke={color} strokeWidth="1" fill="none" transform="rotate(-30 -8 -6)" />
-                <ellipse cx="8" cy="-6" rx="3.4" ry="1.6" stroke={color} strokeWidth="1" fill="none" transform="rotate(30 8 -6)" />
-            </g>
-        ))}
-    </svg>
-);
+const NAV_ITEMS = [
+    { id: 'home',    label: 'Home',    I: IHome,       to: '/' },
+    { id: 'route',   label: 'Route',   I: IMap,        to: '/route' },
+    { id: 'chat',    label: 'AI Chat', I: IChat,       to: '/chat' },
+    { id: 'scanner', label: 'Scanner', I: ICamera,     to: '/scanner' },
+    { id: 'alerts',  label: 'Alerts',  I: IBell,       to: '/alerts' },
+    { id: 'me',      label: 'Profile', I: IUser,       to: '/me' },
+];
+
+/** Desktop left sidebar navigation */
+export function SideNav() {
+    const location = useLocation();
+    return (
+        <nav style={{
+            position: 'fixed', top: 0, left: 0, bottom: 0, width: 220, zIndex: 50,
+            background: 'var(--surface)',
+            borderRight: '1px solid var(--border)',
+            display: 'flex', flexDirection: 'column',
+            padding: '0 0 24px',
+        }}>
+            {/* Logo / Brand */}
+            <div style={{ padding: '24px 20px 20px', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 12, background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <IHome size={18} stroke="white" />
+                    </div>
+                    <div>
+                        <div style={{ fontFamily: 'Fraunces', fontWeight: 500, fontSize: 15, color: 'var(--ink)' }}>AgroPilot</div>
+                        <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, color: 'var(--ink-soft)', fontWeight: 600 }}>by Syngenta</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Status */}
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 11px 5px 10px', borderRadius: 999, background: 'var(--primary-soft)', color: 'var(--primary)', fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 600 }}>
+                    <PulseDot color="#2E4A3A" size={6} /> Offline · 3 queued
+                </div>
+            </div>
+
+            {/* Nav links */}
+            <div style={{ flex: 1, padding: '12px 12px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {NAV_ITEMS.map(({ id, label, I, to }) => {
+                    const active = location.pathname === to || (to === '/' && location.pathname === '/');
+                    return (
+                        <Link key={id} to={to} style={{
+                            display: 'flex', alignItems: 'center', gap: 12,
+                            padding: '10px 12px', borderRadius: 12,
+                            background: active ? 'rgba(46,74,58,0.10)' : 'transparent',
+                            color: active ? 'var(--primary)' : 'var(--ink-soft)',
+                            fontFamily: 'Plus Jakarta Sans', fontSize: 13.5, fontWeight: 600,
+                            textDecoration: 'none', transition: 'background 150ms, color 150ms',
+                        }}>
+                            <I size={18} stroke={active ? '#2E4A3A' : '#6B6A5F'} />
+                            {label}
+                            {active && <span style={{ marginLeft: 'auto', width: 4, height: 4, borderRadius: 99, background: 'var(--primary)' }} />}
+                        </Link>
+                    );
+                })}
+            </div>
+
+            {/* Alerts bell at bottom */}
+            <div style={{ padding: '0 12px' }}>
+                <Link to="/alerts" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, color: 'var(--ink-soft)', fontFamily: 'Plus Jakarta Sans', fontSize: 13.5, fontWeight: 600, textDecoration: 'none', position: 'relative' }}>
+                    <IBell size={18} stroke="#6B6A5F" />
+                    Alerts
+                    <span style={{ marginLeft: 'auto', minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999, background: 'var(--accent)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontWeight: 700, fontSize: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>2</span>
+                </Link>
+            </div>
+        </nav>
+    );
+}
 
 export function TopStrip() {
+    const isDesk = useDesktop();
+    if (isDesk) {
+        // On desktop: show a top bar within the main content area
+        return (
+            <div style={{
+                position: 'sticky', top: 0, zIndex: 30,
+                background: 'rgba(245,241,232,0.92)',
+                backdropFilter: 'blur(14px) saturate(160%)', WebkitBackdropFilter: 'blur(14px) saturate(160%)',
+                borderBottom: '1px solid rgba(229,220,201,0.7)',
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 32px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 11px 5px 10px', borderRadius: 999, background: 'var(--primary-soft)', color: 'var(--primary)', fontFamily: 'Plus Jakarta Sans', fontSize: 11.5, fontWeight: 600 }}>
+                            <PulseDot color="#2E4A3A" size={6} /> Offline
+                        </div>
+                        <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: 'var(--ink-soft)' }}>3 actions queued</span>
+                    </div>
+                    <Link to="/alerts" style={{ position: 'relative', width: 40, height: 40, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)', textDecoration: 'none' }}>
+                        <IBell size={20} />
+                        <span style={{ position: 'absolute', top: 6, right: 6, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 999, background: 'var(--accent)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontWeight: 700, fontSize: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 2px var(--surface)' }}>2</span>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+    // Mobile: original compact strip
     return (
         <div style={{
             position: 'sticky', top: 0, zIndex: 30, background: 'rgba(245,241,232,0.78)',
@@ -89,12 +177,16 @@ export function TopStrip() {
 
 export function BottomNav() {
     const location = useLocation();
+    const isDesk = useDesktop();
+    // On desktop, BottomNav is hidden — SideNav is used instead
+    if (isDesk) return null;
+
     const items = [
-        { id: 'home', label: 'Home', I: IHome, to: '/' },
-        { id: 'route', label: 'Route', I: IMap, to: '/route' },
-        { id: 'chat', label: 'Chat', I: IChat, primary: true, to: '/chat' },
-        { id: 'alerts', label: 'Alerts', I: IBell, to: '/alerts' },
-        { id: 'me', label: 'Profile', I: IUser, to: '/me' },
+        { id: 'home',    label: 'Home',    I: IHome,   to: '/' },
+        { id: 'route',   label: 'Route',   I: IMap,    to: '/route' },
+        { id: 'chat',    label: 'Chat',    I: IChat,   primary: true, to: '/chat' },
+        { id: 'alerts',  label: 'Alerts',  I: IBell,   to: '/alerts' },
+        { id: 'me',      label: 'Profile', I: IUser,   to: '/me' },
     ];
     return (
         <div style={{ position: 'sticky', bottom: 0, left: 0, right: 0, zIndex: 40, paddingBottom: 12, paddingTop: 14, paddingLeft: 14, paddingRight: 14, background: 'linear-gradient(180deg, rgba(245,241,232,0) 0%, rgba(245,241,232,0.95) 40%, var(--bg) 100%)' }}>
@@ -139,3 +231,29 @@ export function ScreenShell({ children, noPad }: { children: React.ReactNode; no
         </div>
     );
 }
+
+export const PulseDot = ({ color = '#B85C3C', size = 6 }) => (
+    <span style={{ position: 'relative', display: 'inline-flex', width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+        <span className="pulse-ring" style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: color }} />
+        <span style={{ position: 'relative', width: size, height: size, borderRadius: '50%', background: color }} />
+    </span>
+);
+
+export const Eyebrow = ({ children, color = 'var(--ink-soft)' }: any) => (
+    <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, color, letterSpacing: '0.18em', textTransform: 'uppercase' as const }}>{children}</span>
+);
+
+export const WheatStalk = ({ size = 64, color = '#1A1A17', opacity = 0.14, style }: any) => (
+    <svg width={size} height={size * 1.4} viewBox="0 0 64 88" fill="none" style={{ opacity, ...style }}>
+        <line x1="32" y1="6" x2="32" y2="84" stroke={color} strokeWidth="1.1" strokeLinecap="round" />
+        {[0, 1, 2, 3, 4, 5, 6, 7].map(i => (
+            <g key={i} transform={`translate(32, ${12 + i * 8.5})`}>
+                <path d="M0 0 Q -7 -3 -11 -10" stroke={color} strokeWidth="1.1" strokeLinecap="round" fill="none" />
+                <path d="M0 0 Q  7 -3  11 -10" stroke={color} strokeWidth="1.1" strokeLinecap="round" fill="none" />
+                <ellipse cx="-8" cy="-6" rx="3.4" ry="1.6" stroke={color} strokeWidth="1" fill="none" transform="rotate(-30 -8 -6)" />
+                <ellipse cx="8" cy="-6" rx="3.4" ry="1.6" stroke={color} strokeWidth="1" fill="none" transform="rotate(30 8 -6)" />
+            </g>
+        ))}
+    </svg>
+);
+
