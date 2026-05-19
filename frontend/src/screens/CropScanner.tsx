@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { IChev, ICamera, TopStrip, BottomNav, Eyebrow, ISpark, Icon } from '../components/Shared';
 
@@ -7,9 +7,17 @@ const IShare = (p: any) => <Icon {...p} d={<><circle cx="18" cy="5" r="3" /><cir
 
 const crops = ['Wheat', 'Mustard', 'Chickpea', 'Potato'];
 
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export default function CropScanner() {
     const [selectedCrop, setSelectedCrop] = useState('Wheat');
     const [scanned, setScanned] = useState(false);
+    const [loading, setLoading] = useState(false);
+    
+    const [diagnosis, setDiagnosis] = useState('');
+    const [severity, setSeverity] = useState('');
+    const [confidence, setConfidence] = useState(0);
+    const [recommendation, setRecommendation] = useState('');
 
     if (scanned) {
         return (
@@ -39,19 +47,19 @@ export default function CropScanner() {
                         <ISpark size={16} stroke="var(--accent)" />
                         <Eyebrow color="var(--accent)">AI Diagnosis</Eyebrow>
                     </div>
-                    <h2 style={{ fontFamily: 'Fraunces', fontSize: 20, fontWeight: 500, color: 'var(--ink)', margin: '0 0 8px' }}>Powdery Mildew</h2>
+                    <h2 style={{ fontFamily: 'Fraunces', fontSize: 20, fontWeight: 500, color: 'var(--ink)', margin: '0 0 8px' }}>{diagnosis}</h2>
                     <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: 'var(--ink-soft)', lineHeight: 1.5, margin: '0 0 16px' }}>
-                        Early-stage powdery mildew detected on wheat leaves. Severity: <strong style={{ color: 'var(--warning)' }}>Moderate</strong>. Spreads rapidly during heading stage if untreated.
+                        Detected on {selectedCrop.toLowerCase()} leaves. Severity: <strong style={{ color: severity === 'High' ? 'var(--danger)' : 'var(--warning)' }}>{severity}</strong>. Needs attention.
                     </p>
                     
                     <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
                         <div style={{ flex: 1, padding: '12px', background: 'rgba(212,163,71,0.12)', borderRadius: 12, textAlign: 'center' }}>
                             <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Severity</div>
-                            <div style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--warning)', marginTop: 4 }}>Moderate</div>
+                            <div style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: severity === 'High' ? 'var(--danger)' : 'var(--warning)', marginTop: 4 }}>{severity}</div>
                         </div>
                         <div style={{ flex: 1, padding: '12px', background: 'rgba(200,213,187,0.4)', borderRadius: 12, textAlign: 'center' }}>
                             <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Confidence</div>
-                            <div style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--primary)', marginTop: 4 }}>87%</div>
+                            <div style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--primary)', marginTop: 4 }}>{confidence}%</div>
                         </div>
                     </div>
                 </div>
@@ -59,8 +67,8 @@ export default function CropScanner() {
                 {/* Product recommendation */}
                 <div className="fade-up" style={{ animationDelay: '100ms', margin: '0 18px 16px', padding: '16px', background: 'var(--primary)', borderRadius: 16, color: 'white' }}>
                     <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', opacity: 0.7, marginBottom: 8 }}>Recommended Product</div>
-                    <div style={{ fontFamily: 'Fraunces', fontSize: 20, fontWeight: 500, marginBottom: 4 }}>Tilt 25 EC</div>
-                    <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, opacity: 0.85, marginBottom: 12 }}>Dosage: 200ml/acre · Apply within 48 hours</div>
+                    <div style={{ fontFamily: 'Fraunces', fontSize: 20, fontWeight: 500, marginBottom: 4 }}>{recommendation}</div>
+                    <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, opacity: 0.85, marginBottom: 12 }}>Check guidelines and stock</div>
                     <div style={{ display: 'flex', gap: 8 }}>
                         <Link to="/chat" style={{ flex: 1, padding: '12px', borderRadius: 12, background: 'rgba(255,255,255,0.2)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600, textAlign: 'center', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.2)' }}>
                             Ask AgroPilot
@@ -130,9 +138,50 @@ export default function CropScanner() {
             </div>
 
             {/* Capture button */}
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
-                <button onClick={() => setScanned(true)} style={{ width: 72, height: 72, borderRadius: '50%', background: 'white', border: '4px solid var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(0,0,0,0.15)' }}>
-                    <ICamera size={28} stroke="var(--primary)" />
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0', position: 'relative' }}>
+                <input 
+                    type="file" 
+                    accept="image/*" 
+                    capture="environment"
+                    onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) {
+                            const file = e.target.files[0];
+                            const formData = new FormData();
+                            formData.append('image', file);
+                            formData.append('crop_type', selectedCrop);
+                            
+                            setLoading(true);
+                            const token = localStorage.getItem('agro_token');
+                            
+                            // Show loading state, then fetch
+                            fetch(`${BASE}/api/scan/analyze`, {
+                                method: 'POST',
+                                body: formData,
+                                headers: token ? { Authorization: `Bearer ${token}` } : {}
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                // Set your React state variables with the real diagnosis and confidence!
+                                setDiagnosis(data.diagnosis);
+                                setSeverity(data.severity);
+                                setConfidence(data.confidence);
+                                setRecommendation(data.recommendation);
+                                setScanned(true);
+                            })
+                            .catch(err => console.error("Scan error", err))
+                            .finally(() => setLoading(false));
+                        }
+                    }}
+                    style={{ position: 'absolute', opacity: 0, width: 72, height: 72, cursor: 'pointer', zIndex: 10 }}
+                    aria-label="Take a photo"
+                    disabled={loading}
+                />
+                <button disabled={loading} style={{ width: 72, height: 72, borderRadius: '50%', background: 'white', border: '4px solid var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(0,0,0,0.15)' }}>
+                    {loading ? (
+                        <div style={{ width: 26, height: 26, border: '3px solid var(--primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    ) : (
+                        <ICamera size={28} stroke="var(--primary)" />
+                    )}
                 </button>
             </div>
 

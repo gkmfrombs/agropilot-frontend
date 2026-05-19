@@ -161,21 +161,7 @@ interface Message {
 }
 
 const initialMessages: Message[] = [
-  { text: "Good morning Arjun! I've already analysed your territory. 3 farms need attention before the rain hits Thursday.", isUser: false },
-  { text: 'What should I prioritize before the rain hits today?', isUser: true },
-  {
-    text: 'Apply Syngenta Tilt 25EC within 48 hours',
-    isUser: false,
-    bullets: [
-      'HD-2967 wheat at BBCH 65 (flowering) — peak fungal vulnerability window',
-      '48mm rainfall + 89% humidity over 31h matched Septoria infection conditions (Hardoi IMD)',
-      '0.87 cosine match to May 2023 outbreak — 14 plots, 12–22% yield loss in Bhatpura-Mallawan cluster',
-      '14 units Tilt 25EC at Kisan Store, Sandila Rd — 11 min drive, confirmed 2h ago',
-    ],
-    confidence: 94,
-    showSources: true,
-    followUps: ['What dosage?', 'Check stock', 'Show route'],
-  },
+  { text: "Hello! I am AgroPilot. How can I help you manage your territory today?", isUser: false },
 ]
 
 // Mini waveform for voice messages
@@ -422,6 +408,32 @@ export default function AIConsultant() {
     return () => { abortRef.current?.abort() }
   }, [])
 
+  // Fetch real initial message on mount
+  useEffect(() => {
+    if (historyRef.current.length === 0) {
+      const repId = localStorage.getItem('agro_rep_id') || 'REP_0001'
+      const token = localStorage.getItem('agro_token')
+      
+      setMessages([{ text: '', isUser: false }]) // Set loading state for first message
+      
+      fetch(`${BASE}/api/chat/welcome/${repId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.message) {
+            setMessages([{ text: data.message, isUser: false, followUps: [data.suggested_prompt] }])
+            historyRef.current = [{ role: 'assistant', content: data.message }]
+          } else {
+            setMessages(initialMessages)
+          }
+        })
+        .catch(() => {
+          setMessages(initialMessages)
+        })
+    }
+  }, [])
+
   const sendMessage = async (text?: string) => {
     const userMsg = (text ?? input).trim()
     if (!userMsg || loading) return
@@ -508,7 +520,6 @@ export default function AIConsultant() {
         next[next.length - 1] = {
           text: accumulated || 'Got it.',
           isUser: false,
-          followUps: ['What dosage?', 'Check stock', 'Show route'],
         }
         return next
       })
@@ -530,8 +541,8 @@ export default function AIConsultant() {
     }
   }
 
-  // Context chips for current visit
-  const contextChips = ['Wheat', 'Block 4', 'Flowering', 'Cached ✓']
+  // Context chips for current visit (can be populated dynamically later)
+  const contextChips: string[] = []
 
   return (
     <div className="chat-screen">
@@ -555,16 +566,18 @@ export default function AIConsultant() {
       </div>
 
       {/* Context chips */}
-      <div style={{ padding: '10px 18px', background: 'var(--surface-warm)', borderBottom: '1px solid var(--border)' }}>
-        <div className="no-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
-          {contextChips.map(c => (
-            <span key={c} style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 999, background: 'var(--bg)', border: '1px solid var(--border)', fontFamily: 'Plus Jakarta Sans', fontSize: 11.5, fontWeight: 600, color: 'var(--ink-soft)' }}>
-              {c === 'Cached ✓' && <span style={{ width: 5, height: 5, borderRadius: 99, background: 'var(--accent)' }} />}
-              {c}
-            </span>
-          ))}
+      {contextChips.length > 0 && (
+        <div style={{ padding: '10px 18px', background: 'var(--surface-warm)', borderBottom: '1px solid var(--border)' }}>
+          <div className="no-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
+            {contextChips.map(c => (
+              <span key={c} style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 999, background: 'var(--bg)', border: '1px solid var(--border)', fontFamily: 'Plus Jakarta Sans', fontSize: 11.5, fontWeight: 600, color: 'var(--ink-soft)' }}>
+                {c === 'Cached ✓' && <span style={{ width: 5, height: 5, borderRadius: 99, background: 'var(--accent)' }} />}
+                {c}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Messages */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '18px 18px 8px', display: 'flex', flexDirection: 'column' }} className="no-scrollbar">

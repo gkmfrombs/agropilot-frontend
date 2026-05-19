@@ -87,12 +87,53 @@ MOCK_GRAPH_DATA = {
     ]
 }
 
+import json
+
 @router.get("/{rep_id}", response_model=GraphResponse)
 async def get_graph(rep_id: str):
     """Returns the reasoning graph representation for the AI recommendations."""
-    return GraphResponse(
-        rep_id=rep_id,
-        recommendation=MOCK_GRAPH_DATA["recommendation"],
-        nodes=MOCK_GRAPH_DATA["nodes"],
-        steps=MOCK_GRAPH_DATA["steps"]
-    )
+    from config import llm
+    if not llm:
+        return GraphResponse(
+            rep_id=rep_id,
+            recommendation=MOCK_GRAPH_DATA["recommendation"],
+            nodes=MOCK_GRAPH_DATA["nodes"],
+            steps=MOCK_GRAPH_DATA["steps"]
+        )
+        
+    prompt = f"""
+You are the AgroPilot reasoning engine. The user (rep_id: {rep_id}) is viewing their territory's AI recommendation graph.
+Generate a valid JSON object matching exactly this schema representing a realistic agricultural scenario (e.g. disease detected, product recommended):
+{{
+    "recommendation": {{"product": "String", "product_sku": "String", "confidence": Int (0-100)}},
+    "nodes": [
+        {{"id": "String", "label": "String", "type": "String", "angle": Int, "weight": Int, "icon_type": "user" or "wheat" or "cloud-rain" or "box", "facts": [["Key", "Value"]], "source": "String"}}
+    ],
+    "steps": [
+        {{"n": Int, "text": "String", "src": "String"}}
+    ]
+}}
+IMPORTANT: Return ONLY raw JSON. No markdown backticks, no explanations.
+"""
+    try:
+        response = llm.invoke(prompt).content.strip()
+        if response.startswith("```json"):
+            response = response[7:-3].strip()
+        elif response.startswith("```"):
+            response = response[3:-3].strip()
+            
+        data = json.loads(response)
+        return GraphResponse(
+            rep_id=rep_id,
+            recommendation=data.get("recommendation", MOCK_GRAPH_DATA["recommendation"]),
+            nodes=data.get("nodes", MOCK_GRAPH_DATA["nodes"]),
+            steps=data.get("steps", MOCK_GRAPH_DATA["steps"])
+        )
+    except Exception as e:
+        print(f"Graph generation error: {e}")
+        return GraphResponse(
+            rep_id=rep_id,
+            recommendation=MOCK_GRAPH_DATA["recommendation"],
+            nodes=MOCK_GRAPH_DATA["nodes"],
+            steps=MOCK_GRAPH_DATA["steps"]
+        )

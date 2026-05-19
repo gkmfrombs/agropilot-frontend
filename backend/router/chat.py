@@ -116,3 +116,31 @@ async def chat_stream_endpoint(request: ChatStreamRequest):
         logger.error(f"Stream error: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
+class WelcomeResponse(BaseModel):
+    message: str
+    suggested_prompt: str
+
+@router.get("/chat/welcome/{rep_id}", response_model=WelcomeResponse)
+async def chat_welcome(rep_id: str):
+    """Generates a dynamic real welcome message and prompt."""
+    try:
+        # We ask the agent to give a brief briefing
+        question = f"Give a very brief 2-sentence morning briefing for representative {rep_id}. Mention any urgent issues or state there are none."
+        final_state = agri_agent.invoke({
+            "question": question, 
+            "response": "", 
+            "error": False
+        })
+        message = final_state.get("response", f"Hello! I am AgroPilot. How can I help you manage territory {rep_id} today?")
+        
+        # We could also ask the LLM for a suggested prompt based on the response, but for speed, we use a static one relevant to the briefing.
+        return WelcomeResponse(
+            message=message,
+            suggested_prompt="What should I prioritize in my territory today?"
+        )
+    except Exception as e:
+        logger.error(f"Welcome error: {str(e)}")
+        return WelcomeResponse(
+            message="Hello! I am AgroPilot. How can I help you manage your territory today?",
+            suggested_prompt="What should I prioritize today?"
+        )

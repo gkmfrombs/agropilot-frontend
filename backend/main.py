@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from router.scanner import router as scanner_router
+
+
 # Initialize config to load environment and logging first
 import config 
 
@@ -27,6 +30,8 @@ app.add_middleware(
 app.include_router(chat_router)
 app.include_router(auth_router)
 app.include_router(graph_router)
+app.include_router(scanner_router)
+
 
 if __name__ == "__main__":
     import uvicorn
