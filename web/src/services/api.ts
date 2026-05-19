@@ -63,6 +63,7 @@ export const api = {
   getRetailers: () => req<any>('/api/retailers'),
   getRetailer: (id: string) => req<any>(`/api/retailers/${id}`),
   getRoute: () => req<any>('/api/route'),
+  getRouteForRep: (repId: string) => req<any>(`/api/route?rep_id=${repId}`),
 
   calculateROI: (params: {
     crop: string
@@ -95,4 +96,21 @@ export const api = {
 
   /** Fetch the reasoning graph for a given rep recommendation */
   getGraph: (repId: string) => req<GraphResponse>(`/api/graph/${repId}`),
+
+  /** Upload a real image for AI crop diagnosis */
+  scanCrop: async (image: File, cropHint: string, repId: string, farmSize: number = 1.0) => {
+    const form = new FormData()
+    form.append('image', image, 'scan.jpg')
+    form.append('crop_hint', cropHint)
+    form.append('rep_id', repId)
+    form.append('farm_size_acres', String(farmSize))
+    const token = localStorage.getItem('agro_token')
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
+    const res = await fetch(`${BASE}/api/scan`, { method: 'POST', body: form, headers })
+    if (!res.ok) throw new Error(`${res.status}`)
+    return res.json()
+  },
+
+  logVisit: (body: Record<string, unknown>) =>
+    req<any>('/api/visits', { method: 'POST', body: JSON.stringify(body) }),
 }

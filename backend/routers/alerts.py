@@ -95,7 +95,8 @@ def get_alerts(rep_id: str = Query(default="REP_0001"), severity: str | None = N
 
 @router.get("/{alert_id}")
 def get_alert(alert_id: str):
+    from fastapi import HTTPException
     for a in STATIC_ALERTS:
         if a["id"] == alert_id:
             return a
-    return {"error": "not found"}
+    raise HTTPException(status_code=404, detail="Alert not found")

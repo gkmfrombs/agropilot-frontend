@@ -1,8 +1,11 @@
 import base64
 import json
+import logging
 from fastapi import APIRouter, UploadFile, File, Form
 from services.claude import vision_chat, chat
 from services.context import SYSTEM_PROMPT_SCAN
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/scan", tags=["scan"])
 
@@ -48,12 +51,12 @@ def _build_yield_comparison(crop: str, severity: str, product_sku: str, farm_siz
 
     return {
         "without_treatment": {
-            "loss_kg_per_acre": loss_kg,
-            "loss_inr_per_acre": loss_inr,
+            "loss_kg_total": loss_kg,
+            "loss_inr_total": loss_inr,
         },
         "with_treatment": {
-            "saved_kg_per_acre": saved_kg,
-            "saved_inr_per_acre": saved_inr,
+            "saved_kg_total": saved_kg,
+            "saved_inr_total": saved_inr,
             "treatment_cost_inr": treatment_cost,
             "net_benefit_inr": net_benefit,
         },
@@ -89,8 +92,8 @@ def _build_whatsapp_message(result: dict, yield_comp: dict) -> str:
 
     wt = yield_comp.get("without_treatment", {})
     wth = yield_comp.get("with_treatment", {})
-    lines.append(f"📉 *Without treatment:* ₹{wt.get('loss_inr_per_acre', 0):,}/acre loss")
-    lines.append(f"📈 *With treatment:* ₹{wth.get('net_benefit_inr', 0):,}/acre net benefit")
+    lines.append(f"📉 *Without treatment:* ₹{wt.get('loss_inr_total', 0):,} total loss")
+    lines.append(f"📈 *With treatment:* ₹{wth.get('net_benefit_inr', 0):,} net benefit")
     lines.append("")
 
     urgency_map = {
@@ -226,8 +229,8 @@ async def scan_crop(
     try:
         raw_response = vision_chat(SYSTEM_PROMPT_SCAN, b64, prompt, media_type=media_type)
         result = _parse_ai_response(raw_response)
-    except Exception:
-        # Fallback to mock data when LLM is unavailable
+    except Exception as e:
+        logger.error("Vision scan failed: %s", e, exc_info=True)
         crop_key = (crop_hint or "wheat").lower()
         result = MOCK_DIAGNOSES.get(crop_key, MOCK_DIAGNOSES["wheat"]).copy()
 
@@ -254,8 +257,8 @@ def scan_demo(body: dict):
         )
         raw = chat(SYSTEM_PROMPT_SCAN, [{"role": "user", "content": prompt}])
         result = _parse_ai_response(raw)
-    except Exception:
-        # Fallback to mock data when LLM is unavailable
+    except Exception as e:
+        logger.error("Demo scan failed: %s", e, exc_info=True)
         crop_key = crop.lower()
         result = MOCK_DIAGNOSES.get(crop_key, MOCK_DIAGNOSES["wheat"]).copy()
 

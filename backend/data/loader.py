@@ -86,9 +86,12 @@ def get_growers_for_rep(rep_id: str, limit: int = 15) -> list[dict]:
     rep_rows = reps_df[reps_df["rep_id"] == rep_id]
     if rep_rows.empty:
         return []
-    territory_id = rep_rows.iloc[0]["territory_id"]
+    tehsil_list = rep_rows.iloc[0]["tehsil_list"]  # already parsed as list at startup
     growers = _cache.get("growers", pd.DataFrame())
-    result = growers[growers["grower_id"].str.startswith("GRW")].head(limit)
+    result = growers[growers["tehsil"].isin(tehsil_list)].head(limit)
+    if result.empty:
+        district = rep_rows.iloc[0]["district"]
+        result = growers[growers["district"] == district].head(limit)
     return result.to_dict(orient="records")
 
 

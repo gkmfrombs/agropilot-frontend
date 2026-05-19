@@ -1,37 +1,62 @@
-﻿import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { IChev, INav, PulseDot, Eyebrow, TopStrip, BottomNav, Icon } from '../components/Shared';
+import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { IChev, INav, PulseDot, Eyebrow, TopStrip, BottomNav, Icon } from '../components/Shared'
+import { useAuth } from '../components/AuthContext'
+import { api } from '../services/api'
 
-const IFilter = (p: any) => <Icon {...p} d={<><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></>} />;
+const IFilter = (p: any) => <Icon {...p} d={<><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></>} />
 
-const stops = [
-    { id: 1, name: 'Kisan Agri Store', type: 'retailer', dist: '2.1', priority: 'HIGH', reason: 'Topik 15WP out of stock — 4 farmers waiting', lat: 27.41, lng: 80.13 },
-    { id: 2, name: 'Ramesh Yadav', type: 'farmer', dist: '4.2', priority: 'HIGH', reason: 'Blight risk at flowering — foliar window 36h', lat: 27.39, lng: 80.15 },
-    { id: 3, name: 'Suresh Verma', type: 'farmer', dist: '6.8', priority: 'HIGH', reason: 'Yellow rust spreading from adjacent plots', lat: 27.38, lng: 80.17 },
-    { id: 4, name: 'Sharma Seeds', type: 'retailer', dist: '8.3', priority: 'MEDIUM', reason: 'Score 250EC low stock — restock recommended', lat: 27.36, lng: 80.19 },
-    { id: 5, name: 'Manju Devi', type: 'farmer', dist: '4.5', priority: 'MEDIUM', reason: 'Soil moisture above threshold', lat: 27.40, lng: 80.14 },
-    { id: 6, name: 'Vikram Pal', type: 'farmer', dist: '11.3', priority: 'LOW', reason: 'Routine seed enquiry — cultivar demo', lat: 27.35, lng: 80.21 },
-];
+// Static fallback used when the API is unavailable
+const STOPS_FALLBACK = [
+    { id: 1, name: 'Kisan Agri Store', type: 'retailer' as const, dist: '2.1', priority: 'HIGH' as const, reason: 'Topik 15WP out of stock — 4 farmers waiting', lat: 27.41, lng: 80.13 },
+    { id: 2, name: 'Ramesh Yadav', type: 'farmer' as const, dist: '4.2', priority: 'HIGH' as const, reason: 'Blight risk at flowering — foliar window 36h', lat: 27.39, lng: 80.15 },
+    { id: 3, name: 'Suresh Verma', type: 'farmer' as const, dist: '6.8', priority: 'HIGH' as const, reason: 'Yellow rust spreading from adjacent plots', lat: 27.38, lng: 80.17 },
+    { id: 4, name: 'Sharma Seeds', type: 'retailer' as const, dist: '8.3', priority: 'MEDIUM' as const, reason: 'Score 250EC low stock — restock recommended', lat: 27.36, lng: 80.19 },
+    { id: 5, name: 'Manju Devi', type: 'farmer' as const, dist: '4.5', priority: 'MEDIUM' as const, reason: 'Soil moisture above threshold', lat: 27.40, lng: 80.14 },
+    { id: 6, name: 'Vikram Pal', type: 'farmer' as const, dist: '11.3', priority: 'LOW' as const, reason: 'Routine seed enquiry — cultivar demo', lat: 27.35, lng: 80.21 },
+]
 
 const RISK_COLORS: any = {
     HIGH: { bg: 'rgba(184,92,60,0.12)', fg: '#B85C3C', dot: '#B85C3C' },
     MEDIUM: { bg: 'rgba(212,163,71,0.18)', fg: '#8C6420', dot: '#D4A347' },
     LOW: { bg: 'rgba(200,213,187,0.5)', fg: '#2E4A3A', dot: '#7B9C6A' },
-};
+}
 
-function MapPlaceholder() {
+/**
+ * Maps a stop from the route API response to the shape the stop list UI expects.
+ * lat/lng are synthetic offsets from a Hardoi-region anchor — no real GPS in API.
+ */
+function mapApiStop(s: any) {
+    return {
+        id: s.stop_number,
+        name: s.retailer_id,
+        type: 'retailer' as const,
+        dist: ((s.stop_number * 2.3) + 1.2).toFixed(1),
+        priority: s.priority.toUpperCase() as 'HIGH' | 'MEDIUM' | 'LOW',
+        reason: s.pitch,
+        lat: 27.41 + (s.stop_number * 0.02),
+        lng: 80.13 + (s.stop_number * 0.02),
+    }
+}
+
+interface MapPlaceholderProps {
+    stops: typeof STOPS_FALLBACK
+    repId: string | null
+}
+
+function MapPlaceholder({ stops, repId }: MapPlaceholderProps) {
     return (
         <div style={{ margin: '0 18px', borderRadius: 20, height: 240, background: 'linear-gradient(135deg, #d4dcc8 0%, #c8d5bb 50%, #b8c9a0 100%)', position: 'relative', overflow: 'hidden', border: '1px solid var(--border)' }}>
             {/* Grid lines for map feel */}
             {[0,1,2,3,4,5].map(i => <div key={`h${i}`} style={{ position:'absolute', top: `${i*20}%`, left:0, right:0, height:1, background:'rgba(46,74,58,0.08)' }} />)}
             {[0,1,2,3,4].map(i => <div key={`v${i}`} style={{ position:'absolute', left: `${i*25}%`, top:0, bottom:0, width:1, background:'rgba(46,74,58,0.08)' }} />)}
-            
+
             {/* Route line — animated dash */}
             <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%' }}>
                 <polyline points="60,40 120,80 200,60 260,120 320,160" fill="none" stroke="var(--primary)" strokeWidth="3" className="route-line" opacity="0.7" />
             </svg>
-            
+
             {/* Stop pins */}
             {stops.slice(0, 4).map((s, i) => (
                 <div key={s.id} style={{ position:'absolute', left: `${15 + i*22}%`, top: `${20 + (i%2)*30}%`, display:'flex', flexDirection:'column', alignItems:'center' }}>
@@ -39,18 +64,50 @@ function MapPlaceholder() {
                 </div>
             ))}
 
-            {/* Map label */}
+            {/* Map label — uses rep_id from API when available, falls back to territory name */}
             <div style={{ position: 'absolute', bottom: 12, left: 12, padding: '6px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 600, color: 'var(--ink-soft)' }}>
-                Hardoi Territory · 18.4 km route
+                {repId ? `${repId} · Hardoi Territory` : 'Hardoi Territory'} · {((stops.length * 3.1)).toFixed(1)} km route
             </div>
         </div>
-    );
+    )
 }
 
 export default function RoutePlanning() {
-    const { t } = useTranslation();
-    const [filter, setFilter] = useState<'all' | 'retailer' | 'farmer'>('all');
-    const filtered = filter === 'all' ? stops : stops.filter(s => s.type === filter);
+    const { t } = useTranslation()
+    const { repId } = useAuth()
+    const [filter, setFilter] = useState<'all' | 'retailer' | 'farmer'>('all')
+
+    const [routeData, setRouteData] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
+    // Holds the mapped stops array; initialised to fallback so the list is never empty
+    const [liveStops, setLiveStops] = useState(STOPS_FALLBACK)
+
+    useEffect(() => {
+        const effectiveRepId = repId ?? 'REP_0001'
+        setLoading(true)
+        api.getRouteForRep(effectiveRepId)
+            .then((data: any) => {
+                setRouteData(data)
+                if (Array.isArray(data?.route) && data.route.length > 0) {
+                    setLiveStops(data.route.map(mapApiStop))
+                }
+            })
+            .catch(() => {
+                // API unavailable — STOPS_FALLBACK already set as initial state
+            })
+            .finally(() => {
+                setLoading(false)
+            })
+    }, [repId])
+
+    // Derive summary values from API data; fall back gracefully while loading
+    const totalStops = routeData?.total_stops ?? liveStops.length
+    const totalKm = (totalStops * 3.1).toFixed(1)
+    const totalHours = routeData?.estimated_total_hours ?? 2.5
+    const urgentCount = liveStops.filter(s => s.priority === 'HIGH').length
+
+    // Filter operates on the live (API-mapped or fallback) stops array
+    const filtered = filter === 'all' ? liveStops : liveStops.filter(s => s.type === filter)
 
     return (
         <div className="screen-root" style={{ position: 'relative', width: '100%', minHeight: '100%', background: 'var(--bg)' }}>
@@ -61,13 +118,15 @@ export default function RoutePlanning() {
                 <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink-soft)', margin: 0 }}>{t('route.subtitle')}</p>
             </div>
 
-            <MapPlaceholder />
+            <MapPlaceholder stops={liveStops} repId={routeData?.rep_id ?? null} />
 
             {/* Summary strip */}
             <div className="fade-up" style={{ margin: '16px 18px', padding: '12px 16px', background: 'var(--surface-warm)', borderRadius: 14, border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink)' }}><strong>6</strong> stops · <strong>18.4</strong> km · <strong>~2.5h</strong></div>
+                <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink)' }}>
+                    <strong>{totalStops}</strong> stops · <strong>{totalKm}</strong> km · <strong>~{totalHours}h</strong>
+                </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ padding: '3px 8px', borderRadius: 999, background: 'rgba(184,92,60,0.12)', color: '#B85C3C', fontSize: 11, fontWeight: 700 }}>3 urgent</span>
+                    <span style={{ padding: '3px 8px', borderRadius: 999, background: 'rgba(184,92,60,0.12)', color: '#B85C3C', fontSize: 11, fontWeight: 700 }}>{urgentCount} urgent</span>
                 </div>
             </div>
 
@@ -83,7 +142,7 @@ export default function RoutePlanning() {
             {/* Stop list */}
             <div style={{ padding: '0 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {filtered.map((s, i) => {
-                    const r = RISK_COLORS[s.priority];
+                    const r = RISK_COLORS[s.priority]
                     return (
                         <Link to={s.type === 'farmer' ? '/farmer/1' : '/retailer/1'} key={s.id} className="fade-up" style={{ animationDelay: `${i * 60}ms`, display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', textDecoration: 'none', color: 'inherit' }}>
                             <div style={{ width: 32, height: 32, borderRadius: '50%', background: r.dot, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: 700, flex: 'none' }}>{i+1}</div>
@@ -99,7 +158,7 @@ export default function RoutePlanning() {
                                 <span style={{ padding: '2px 7px', borderRadius: 999, background: r.bg, color: r.fg, fontSize: 10, fontWeight: 700 }}>{s.priority}</span>
                             </div>
                         </Link>
-                    );
+                    )
                 })}
             </div>
 
@@ -112,5 +171,5 @@ export default function RoutePlanning() {
             <div style={{ height: 100 }} />
             <BottomNav />
         </div>
-    );
+    )
 }

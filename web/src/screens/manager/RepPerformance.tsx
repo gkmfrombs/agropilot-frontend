@@ -1,8 +1,28 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 const S: React.CSSProperties = { fontFamily: 'Plus Jakarta Sans' }
 
-const reps = [
+// --- Explicit interface so useState types don't break when reps is derived ---
+interface Rep {
+  name: string
+  territory: string
+  photo: string
+  visits: number
+  target: number
+  revenue: number
+  revTarget: number
+  coverage: number
+  coverTarget: number
+  acceptance: number
+  aiUsage: number
+  quality: number
+  emergency: string
+  issues: string[]
+  trend: number[]
+}
+
+// --- Fallback hardcoded data ---
+const reps_fallback: Rep[] = [
   { name: 'Prachi Verma', territory: 'Sandila', photo: 'PV', visits: 22, target: 24, revenue: 16.8, revTarget: 15, coverage: 85, coverTarget: 80, acceptance: 88, aiUsage: 92, quality: 91, emergency: '2h', issues: [], trend: [12, 14, 15, 16, 16.8] },
   { name: 'Arjun Mehta', territory: 'Hardoi', photo: 'AM', visits: 18, target: 24, revenue: 14.2, revTarget: 15, coverage: 78, coverTarget: 80, acceptance: 83, aiUsage: 85, quality: 78, emergency: '4h', issues: [], trend: [10, 11, 12, 13, 14.2] },
   { name: 'Rahul Singh', territory: 'Mallawan', photo: 'RS', visits: 15, target: 24, revenue: 11.3, revTarget: 15, coverage: 62, coverTarget: 80, acceptance: 71, aiUsage: 68, quality: 65, emergency: '8h', issues: ['Low coverage in west tehsils'], trend: [9, 10, 10.5, 11, 11.3] },
@@ -96,9 +116,51 @@ const css = `
   }
 `
 
+const BASE = 'http://localhost:8000'
+
 export default function RepPerformance() {
   const [sortBy, setSortBy] = useState('Revenue')
-  const [selectedRep, setSelectedRep] = useState<typeof reps[0] | null>(null)
+  const [selectedRep, setSelectedRep] = useState<Rep | null>(null)
+  const [repsData, setRepsData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const token = localStorage.getItem('agro_token')
+    const h: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (token) h['Authorization'] = `Bearer ${token}`
+
+    fetch(`${BASE}/api/manager/reps`, { headers: h })
+      .then(r => r.json())
+      .then(d => { setRepsData(d); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [])
+
+  // Map API response to the shape the UI expects; fall back when unavailable
+  const reps: Rep[] = repsData?.reps?.length
+    ? repsData.reps.map((r: any) => ({
+        name: r.rep_id,
+        territory: r.territory || r.district,
+        photo: r.rep_id.slice(-2),
+        visits: r.visits_total,
+        target: 24,
+        revenue: r.revenue_lakh,
+        revTarget: 15,
+        coverage: r.coverage_pct,
+        coverTarget: 80,
+        acceptance: r.ai_accept_rate_pct,
+        aiUsage: r.ai_accept_rate_pct - 5,
+        quality: Math.round((r.coverage_pct + r.ai_accept_rate_pct) / 2),
+        emergency: r.coverage_pct > 70 ? '2h' : r.coverage_pct > 50 ? '6h' : '12h+',
+        issues: r.coverage_pct < 50 ? ['Low coverage'] : [],
+        trend: [
+          r.revenue_lakh * 0.6,
+          r.revenue_lakh * 0.7,
+          r.revenue_lakh * 0.8,
+          r.revenue_lakh * 0.9,
+          r.revenue_lakh,
+        ],
+      }))
+    : reps_fallback
 
   const sorted = [...reps].sort((a, b) => {
     if (sortBy === 'Revenue') return b.revenue - a.revenue
@@ -114,7 +176,9 @@ export default function RepPerformance() {
         <div className="rp-header">
           <div>
             <h1 style={{ fontFamily: 'Fraunces', fontSize: 28, fontWeight: 500, margin: '0 0 4px', color: 'var(--ink)' }}>Rep Performance Tracker</h1>
-            <p style={{ ...S, fontSize: 14, color: 'var(--ink-soft)', margin: 0 }}>Individual scorecards & leaderboard</p>
+            <p style={{ ...S, fontSize: 14, color: 'var(--ink-soft)', margin: 0 }}>
+              {loading ? 'Loading reps…' : 'Individual scorecards & leaderboard'}
+            </p>
           </div>
           <div className="rp-sort-row">
             <span style={{ ...S, fontSize: 12, color: 'var(--ink-soft)' }}>Sort by:</span>

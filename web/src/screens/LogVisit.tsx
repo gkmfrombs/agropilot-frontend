@@ -2,6 +2,8 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { IChev, IMic, ICheck, TopStrip, BottomNav } from '../components/Shared';
+import { api } from '../services/api';
+import { useAuth } from '../components/AuthContext';
 
 const outcomes = ['Sale Made', 'Order Placed', 'No Purchase', 'Follow-up Required'];
 const products = ['Topik 15 WP', 'Score 250 EC', 'Actara 25 WG', 'Kavach 75 WP', 'Tilt 25 EC', 'Nativo 75 WG', 'Amistar Top'];
@@ -9,11 +11,14 @@ const products = ['Topik 15 WP', 'Score 250 EC', 'Actara 25 WG', 'Kavach 75 WP',
 export default function LogVisit() {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const { repId } = useAuth();
     const [selectedOutcome, setSelectedOutcome] = useState<string | null>(null);
     const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
     const [competitor, setCompetitor] = useState(false);
     const [notes, setNotes] = useState('');
     const [submitted, setSubmitted] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
     const toggleProduct = (p: string) => {
         setSelectedProducts(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
@@ -109,8 +114,18 @@ export default function LogVisit() {
 
             {/* Submit */}
             <div style={{ padding: '0 18px 24px' }}>
-                <button onClick={() => setSubmitted(true)} style={{ width: '100%', padding: '15px', borderRadius: 16, background: selectedOutcome ? 'var(--primary)' : 'var(--border)', color: selectedOutcome ? 'white' : 'var(--ink-soft)', border: 'none', fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, fontWeight: 600, cursor: selectedOutcome ? 'pointer' : 'default', boxShadow: selectedOutcome ? '0 6px 16px rgba(46,74,58,0.28), inset 0 1px 0 rgba(255,255,255,0.18)' : 'none' }}>
-                    Submit Visit Log
+                {submitError && <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: 'var(--danger)', marginBottom: 8 }}>{submitError}</p>}
+                <button onClick={async () => {
+                    if (!selectedOutcome || submitting) return;
+                    setSubmitting(true); setSubmitError(null);
+                    try {
+                        await api.logVisit({ rep_id: repId || 'REP_0001', outcome: selectedOutcome, products_discussed: selectedProducts, competitor_observed: competitor, notes });
+                        setSubmitted(true);
+                    } catch {
+                        setSubmitError('Failed to save. Check backend is running.');
+                    } finally { setSubmitting(false); }
+                }} style={{ width: '100%', padding: '15px', borderRadius: 16, background: selectedOutcome ? 'var(--primary)' : 'var(--border)', color: selectedOutcome ? 'white' : 'var(--ink-soft)', border: 'none', fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, fontWeight: 600, cursor: selectedOutcome && !submitting ? 'pointer' : 'default', boxShadow: selectedOutcome ? '0 6px 16px rgba(46,74,58,0.28), inset 0 1px 0 rgba(255,255,255,0.18)' : 'none' }}>
+                    {submitting ? 'Saving...' : 'Submit Visit Log'}
                 </button>
             </div>
 

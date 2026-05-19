@@ -78,7 +78,7 @@ function ManagerApp() {
 function RepAppWithTour() {
   // In dev: always show tour so the full first-login flow is testable
   const [showTour, setShowTour] = useState(() =>
-    import.meta.env.DEV ? true : !localStorage.getItem('agro_tour_done')
+    !localStorage.getItem('agro_tour_done')
   )
 
   const handleTourDone = () => {
@@ -97,7 +97,7 @@ function AppRoutes() {
   const { role } = useAuth()
   // In dev: always start from onboarding so the full flow is testable on every refresh
   const [onboarded, setOnboarded] = useState(() =>
-    import.meta.env.DEV ? false : !!localStorage.getItem('agro_onboarded')
+    !!localStorage.getItem('agro_onboarded')
   )
 
   // ── Unauthenticated ────────────────────────────────────────────────────────

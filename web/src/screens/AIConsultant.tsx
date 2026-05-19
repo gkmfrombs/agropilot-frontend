@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { IChev, IMic, ISend, IClose, Icon } from '../components/Shared'
+import { useAuth } from '../components/AuthContext'
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -160,8 +161,8 @@ interface Message {
   followUps?: string[]
 }
 
-const initialMessages: Message[] = [
-  { text: "Good morning Arjun! I've already analysed your territory. 3 farms need attention before the rain hits Thursday.", isUser: false },
+const buildInitialMessages = (name: string): Message[] => [
+  { text: `Good morning ${name || 'there'}! I've already analysed your territory. 3 farms need attention before the rain hits Thursday.`, isUser: false },
   { text: 'What should I prioritize before the rain hits today?', isUser: true },
   {
     text: 'Apply Syngenta Tilt 25EC within 48 hours',
@@ -403,7 +404,8 @@ function ChatMessage({ message, delay, onSend }: { message: Message; delay: numb
 
 export default function AIConsultant() {
   const { t } = useTranslation()
-  const [messages, setMessages] = useState<Message[]>(initialMessages)
+  const { name } = useAuth()
+  const [messages, setMessages] = useState<Message[]>(() => buildInitialMessages(name))
   const [input, setInput] = useState('')
   const [recording, setRecording] = useState(false)
   const [loading, setLoading] = useState(false)

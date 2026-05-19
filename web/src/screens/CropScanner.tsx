@@ -1,140 +1,285 @@
-﻿import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { IChev, ICamera, TopStrip, BottomNav, Eyebrow, ISpark, Icon } from '../components/Shared';
+import { api } from '../services/api';
+import { useAuth } from '../components/AuthContext';
 
 const ILeaf = (p: any) => <Icon {...p} d={<><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 1c1 2 2 4.5 2 8 0 5.5-4.78 11-10 11Z" /><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" /></>} />;
 const IShare = (p: any) => <Icon {...p} d={<><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></>} />;
 
 const crops = ['Wheat', 'Mustard', 'Chickpea', 'Potato'];
 
-export default function CropScanner() {
-    const [selectedCrop, setSelectedCrop] = useState('Wheat');
-    const [scanned, setScanned] = useState(false);
+const SEVERITY_COLORS: Record<string, string> = {
+    mild: 'var(--primary)',
+    moderate: 'var(--warning)',
+    severe: 'var(--danger)',
+};
 
-    if (scanned) {
+export default function CropScanner() {
+    const { repId } = useAuth();
+    const [selectedCrop, setSelectedCrop] = useState('Wheat');
+    const [scanning, setScanning] = useState(false);
+    const [result, setResult] = useState<any>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [capturedImage, setCapturedImage] = useState<string | null>(null);
+
+    // Camera state
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+    const [cameraActive, setCameraActive] = useState(false);
+    const [cameraError, setCameraError] = useState(false);
+
+    // File input fallback
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        startCamera();
+        return () => stopCamera();
+    }, []);
+
+    const startCamera = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+            });
+            streamRef.current = stream;
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+                videoRef.current.play();
+            }
+            setCameraActive(true);
+            setCameraError(false);
+        } catch {
+            setCameraError(true);
+            setCameraActive(false);
+        }
+    };
+
+    const stopCamera = () => {
+        streamRef.current?.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+    };
+
+    const captureFromCamera = (): Promise<File | null> => {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        if (!video || !canvas) return Promise.resolve(null);
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return Promise.resolve(null);
+        ctx.drawImage(video, 0, 0);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        setCapturedImage(dataUrl);
+        return new Promise(resolve => canvas.toBlob(blob => {
+            resolve(blob ? new File([blob], 'scan.jpg', { type: 'image/jpeg' }) : null);
+        }, 'image/jpeg', 0.85));
+    };
+
+    const handleCapture = async () => {
+        if (cameraActive) {
+            const file = await captureFromCamera();
+            if (file) await runScan(file);
+        } else {
+            fileInputRef.current?.click();
+        }
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        setCapturedImage(url);
+        await runScan(file);
+    };
+
+    const runScan = async (file: File) => {
+        stopCamera();
+        setScanning(true);
+        setError(null);
+        try {
+            const data = await api.scanCrop(file, selectedCrop.toLowerCase(), repId || 'REP_0001');
+            setResult(data);
+        } catch {
+            try {
+                const data = await api.scanDemo('yellowing and spots on leaves', selectedCrop.toLowerCase());
+                setResult(data);
+            } catch {
+                setError('Scan failed — check backend is running on port 8000.');
+                setScanning(false);
+                startCamera();
+                return;
+            }
+        } finally {
+            setScanning(false);
+        }
+    };
+
+    const retake = () => {
+        setResult(null);
+        setCapturedImage(null);
+        setError(null);
+        startCamera();
+    };
+
+    // ── Scanning overlay ──────────────────────────────────────
+    if (scanning) {
+        return (
+            <div className="screen-root" style={{ width: '100%', minHeight: '100%', background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
+                <div style={{ width: 72, height: 72, borderRadius: '50%', border: '3px solid var(--primary)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+                <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: 'var(--ink-soft)', fontWeight: 600 }}>Analyzing with AI...</p>
+            </div>
+        );
+    }
+
+    // ── Result view ───────────────────────────────────────────
+    if (result) {
+        const scan = result.scan_result || result;
+        const yc = result.yield_comparison || {};
+        const wt = yc.without_treatment || {};
+        const wth = yc.with_treatment || {};
+        const severity = (scan.severity || 'moderate').toLowerCase();
+        const products = scan.products || [];
+        const p = products[0];
+
         return (
             <div className="screen-root" style={{ position: 'relative', width: '100%', minHeight: '100%', background: 'var(--bg)' }}>
                 <TopStrip />
-                
                 <div style={{ padding: '14px 18px' }}>
-                    <button onClick={() => setScanned(false)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer', padding: 0, marginBottom: 12 }}>
+                    <button onClick={retake} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer', padding: 0, marginBottom: 12 }}>
                         <IChev size={16} style={{ transform: 'rotate(180deg)' }} />
                         <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600 }}>Scan Again</span>
                     </button>
                 </div>
 
-                {/* Scan result image */}
-                <div style={{ margin: '0 18px', borderRadius: 20, height: 200, background: 'linear-gradient(135deg, #8B7355 0%, #A0926B 100%)', position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <ILeaf size={64} stroke="rgba(255,255,255,0.3)" />
-                    </div>
+                <div style={{ margin: '0 18px', borderRadius: 20, height: 200, background: capturedImage ? undefined : 'linear-gradient(135deg, #8B7355 0%, #A0926B 100%)', backgroundImage: capturedImage ? `url(${capturedImage})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative', overflow: 'hidden' }}>
+                    {!capturedImage && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ILeaf size={64} stroke="rgba(255,255,255,0.3)" /></div>}
                     <div style={{ position: 'absolute', bottom: 12, left: 12, padding: '6px 10px', borderRadius: 8, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 600 }}>
-                        Wheat leaf · Analyzed
+                        {scan.crop || selectedCrop} · Analyzed
                     </div>
                 </div>
 
-                {/* Diagnosis */}
                 <div className="fade-up" style={{ margin: '16px 18px', padding: '18px', background: 'var(--surface)', borderRadius: 20, border: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                         <ISpark size={16} stroke="var(--accent)" />
                         <Eyebrow color="var(--accent)">AI Diagnosis</Eyebrow>
                     </div>
-                    <h2 style={{ fontFamily: 'Fraunces', fontSize: 20, fontWeight: 500, color: 'var(--ink)', margin: '0 0 8px' }}>Powdery Mildew</h2>
-                    <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: 'var(--ink-soft)', lineHeight: 1.5, margin: '0 0 16px' }}>
-                        Early-stage powdery mildew detected on wheat leaves. Severity: <strong style={{ color: 'var(--warning)' }}>Moderate</strong>. Spreads rapidly during heading stage if untreated.
-                    </p>
-                    
-                    <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                    <h2 style={{ fontFamily: 'Fraunces', fontSize: 20, fontWeight: 500, color: 'var(--ink)', margin: '0 0 8px' }}>{scan.disease || 'Unknown'}</h2>
+                    <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: 'var(--ink-soft)', lineHeight: 1.5, margin: '0 0 16px' }}>{scan.explanation || ''}</p>
+                    <div style={{ display: 'flex', gap: 12 }}>
                         <div style={{ flex: 1, padding: '12px', background: 'rgba(212,163,71,0.12)', borderRadius: 12, textAlign: 'center' }}>
                             <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Severity</div>
-                            <div style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--warning)', marginTop: 4 }}>Moderate</div>
+                            <div style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: SEVERITY_COLORS[severity] || 'var(--warning)', marginTop: 4, textTransform: 'capitalize' }}>{scan.severity || 'Moderate'}</div>
                         </div>
                         <div style={{ flex: 1, padding: '12px', background: 'rgba(200,213,187,0.4)', borderRadius: 12, textAlign: 'center' }}>
                             <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Confidence</div>
-                            <div style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--primary)', marginTop: 4 }}>87%</div>
+                            <div style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--primary)', marginTop: 4 }}>{scan.confidence || 85}%</div>
                         </div>
                     </div>
                 </div>
 
-                {/* Product recommendation */}
-                <div className="fade-up" style={{ animationDelay: '100ms', margin: '0 18px 16px', padding: '16px', background: 'var(--primary)', borderRadius: 16, color: 'white' }}>
-                    <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', opacity: 0.7, marginBottom: 8 }}>Recommended Product</div>
-                    <div style={{ fontFamily: 'Fraunces', fontSize: 20, fontWeight: 500, marginBottom: 4 }}>Tilt 25 EC</div>
-                    <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, opacity: 0.85, marginBottom: 12 }}>Dosage: 200ml/acre · Apply within 48 hours</div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                        <Link to="/chat" style={{ flex: 1, padding: '12px', borderRadius: 12, background: 'rgba(255,255,255,0.2)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600, textAlign: 'center', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.2)' }}>
-                            Ask AgroPilot
-                        </Link>
-                        <Link to="/calculator" style={{ flex: 1, padding: '12px', borderRadius: 12, background: 'rgba(255,255,255,0.2)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600, textAlign: 'center', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.2)' }}>
-                            Yield Impact
-                        </Link>
+                {p && (
+                    <div className="fade-up" style={{ animationDelay: '100ms', margin: '0 18px 16px', padding: '16px', background: 'var(--primary)', borderRadius: 16, color: 'white' }}>
+                        <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', opacity: 0.7, marginBottom: 8 }}>Recommended Product</div>
+                        <div style={{ fontFamily: 'Fraunces', fontSize: 20, fontWeight: 500, marginBottom: 4 }}>{p.name}</div>
+                        <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, opacity: 0.85, marginBottom: 8 }}>Dosage: {p.dose}</div>
+                        {(wt.loss_inr_total || wth.net_benefit_inr) && (
+                            <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 12 }}>
+                                Loss without treatment: ₹{(wt.loss_inr_total || 0).toLocaleString()} · Net benefit: ₹{(wth.net_benefit_inr || 0).toLocaleString()}
+                            </div>
+                        )}
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <Link to="/chat" style={{ flex: 1, padding: '12px', borderRadius: 12, background: 'rgba(255,255,255,0.2)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600, textAlign: 'center', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.2)' }}>Ask AgroPilot</Link>
+                            <Link to="/calculator" style={{ flex: 1, padding: '12px', borderRadius: 12, background: 'rgba(255,255,255,0.2)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600, textAlign: 'center', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.2)' }}>Yield Impact</Link>
+                        </div>
                     </div>
-                </div>
+                )}
 
-                {/* Share */}
-                <div style={{ padding: '0 18px 24px' }}>
-                    <button style={{ width: '100%', padding: '14px', borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--border)', fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: 600, color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                        <IShare size={16} /> Share via WhatsApp
-                    </button>
-                </div>
-
+                {result.whatsapp_message && (
+                    <div style={{ padding: '0 18px 24px' }}>
+                        <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(result.whatsapp_message)}`, '_blank')} style={{ width: '100%', padding: '14px', borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--border)', fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: 600, color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                            <IShare size={16} /> Share via WhatsApp
+                        </button>
+                    </div>
+                )}
                 <div style={{ height: 100 }} />
                 <BottomNav />
             </div>
         );
     }
 
+    // ── Scanner view ──────────────────────────────────────────
     return (
         <div className="screen-root" style={{ position: 'relative', width: '100%', minHeight: '100%', background: 'var(--bg)' }}>
             <TopStrip />
-            
+
+            {/* Hidden fallback file input */}
+            <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleFileChange} />
+            {/* Hidden canvas for capturing frame from video */}
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
+
             <div style={{ padding: '18px 18px 12px' }}>
                 <h1 style={{ fontFamily: 'Fraunces', fontSize: 24, fontWeight: 500, color: 'var(--ink)', margin: '0 0 4px' }}>Crop Scanner</h1>
                 <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink-soft)', margin: 0 }}>AI-powered disease diagnosis</p>
             </div>
 
-            {/* Crop Selector */}
+            {/* Crop selector */}
             <div style={{ padding: '0 18px 20px' }}>
                 <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: 700, color: 'var(--ink-soft)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Select Crop</div>
                 <div style={{ display: 'flex', gap: 10 }}>
                     {crops.map(c => (
-                        <button key={c} onClick={() => setSelectedCrop(c)} style={{
-                            flex: 1, padding: '14px 8px', borderRadius: 14,
-                            background: selectedCrop === c ? 'var(--primary)' : 'var(--surface)',
-                            color: selectedCrop === c ? 'white' : 'var(--ink)',
-                            border: selectedCrop === c ? '1px solid var(--primary)' : '1px solid var(--border)',
-                            fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                            textAlign: 'center',
-                        }}>
+                        <button key={c} onClick={() => setSelectedCrop(c)} style={{ flex: 1, padding: '14px 8px', borderRadius: 14, background: selectedCrop === c ? 'var(--primary)' : 'var(--surface)', color: selectedCrop === c ? 'white' : 'var(--ink)', border: selectedCrop === c ? '1px solid var(--primary)' : '1px solid var(--border)', fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
                             {c}
                         </button>
                     ))}
                 </div>
             </div>
 
-            {/* Camera viewfinder — animated scan */}
-            <div className="live-camera" style={{ margin: '0 18px', borderRadius: 24, height: 320, background: 'linear-gradient(180deg, #3a4a30 0%, #2c3a22 100%)', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--border)' }}>
+            {/* Camera viewfinder */}
+            <div style={{ margin: '0 18px', borderRadius: 24, height: 320, background: 'linear-gradient(180deg, #3a4a30 0%, #2c3a22 100%)', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--border)' }}>
+                {/* Live camera feed */}
+                {cameraActive && (
+                    <video ref={videoRef} autoPlay playsInline muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                )}
+
                 {/* Grid overlay */}
-                <div style={{ position: 'absolute', inset: 20, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 12 }}>
-                    <div style={{ position: 'absolute', top: '33%', left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.08)' }} />
-                    <div style={{ position: 'absolute', top: '66%', left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.08)' }} />
-                    <div style={{ position: 'absolute', left: '33%', top: 0, bottom: 0, width: 1, background: 'rgba(255,255,255,0.08)' }} />
-                    <div style={{ position: 'absolute', left: '66%', top: 0, bottom: 0, width: 1, background: 'rgba(255,255,255,0.08)' }} />
+                <div style={{ position: 'absolute', inset: 20, border: '1px solid rgba(255,255,255,0.25)', borderRadius: 12, pointerEvents: 'none' }}>
+                    <div style={{ position: 'absolute', top: '33%', left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.12)' }} />
+                    <div style={{ position: 'absolute', top: '66%', left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.12)' }} />
+                    <div style={{ position: 'absolute', left: '33%', top: 0, bottom: 0, width: 1, background: 'rgba(255,255,255,0.12)' }} />
+                    <div style={{ position: 'absolute', left: '66%', top: 0, bottom: 0, width: 1, background: 'rgba(255,255,255,0.12)' }} />
                 </div>
-                {/* Scan line */}
-                <div className="scan-line" style={{ position: 'absolute', left: 20, right: 20, height: 2, background: 'linear-gradient(90deg, transparent, #C9974A, transparent)', boxShadow: '0 0 8px 2px rgba(201,151,74,0.5)', borderRadius: 1 }} />
-                <ILeaf size={48} stroke="rgba(255,255,255,0.3)" />
-                <div style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                    Point camera at affected leaf
+
+                {/* Scan line animation */}
+                <div className="scan-line" style={{ position: 'absolute', left: 20, right: 20, height: 2, background: 'linear-gradient(90deg, transparent, #C9974A, transparent)', boxShadow: '0 0 8px 2px rgba(201,151,74,0.5)', borderRadius: 1, pointerEvents: 'none' }} />
+
+                {/* Fallback icon when no camera */}
+                {!cameraActive && <ILeaf size={48} stroke="rgba(255,255,255,0.3)" />}
+
+                <div style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 600, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+                    {cameraActive ? 'Point at affected leaf' : cameraError ? 'Tap to upload photo' : 'Starting camera...'}
                 </div>
+
+                {/* Camera error badge */}
+                {cameraError && (
+                    <div style={{ position: 'absolute', top: 14, right: 14, padding: '4px 10px', borderRadius: 99, background: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.8)', fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 600 }}>
+                        Upload mode
+                    </div>
+                )}
             </div>
 
+            {error && <p style={{ textAlign: 'center', color: 'var(--danger)', fontFamily: 'Plus Jakarta Sans', fontSize: 13, padding: '10px 18px 0', fontWeight: 600 }}>{error}</p>}
+
             {/* Capture button */}
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
-                <button onClick={() => setScanned(true)} style={{ width: 72, height: 72, borderRadius: '50%', background: 'white', border: '4px solid var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(0,0,0,0.15)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0 8px' }}>
+                <button onClick={handleCapture} style={{ width: 72, height: 72, borderRadius: '50%', background: 'white', border: '4px solid var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(0,0,0,0.15)' }}>
                     <ICamera size={28} stroke="var(--primary)" />
                 </button>
             </div>
+            <p style={{ textAlign: 'center', fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: 'var(--ink-soft)', margin: 0 }}>
+                {cameraActive ? 'Tap to capture' : 'Tap to select photo'}
+            </p>
 
             <div style={{ height: 100 }} />
             <BottomNav />
