@@ -13,6 +13,8 @@
 const useState = React.useState;
 const useEffect = React.useEffect;
 
+const API_BASE = window.API_BASE || 'http://localhost:8000';
+
 // ===================================================================
 // Icons (Lucide-style, 1.5 stroke, rounded)
 // ===================================================================
@@ -130,7 +132,7 @@ function TopStrip() {
 // ===================================================================
 // Cinematic hero — greeting laid over a wheat-at-golden-hour photo
 // ===================================================================
-function Hero() {
+function Hero({ subtitle }) {
   const [wx, setWx] = useState(null);
 
   useEffect(() => {
@@ -219,7 +221,7 @@ function Hero() {
             color: 'rgba(245,241,232,0.82)',
             margin: '8px 0 0',
           }}>
-            5 farms need you before the rain arrives.
+            {subtitle || '5 farms need you before the rain arrives.'}
           </p>
         </div>
       </div>
@@ -290,7 +292,7 @@ function MiniBars() {
   );
 }
 
-function AlertCard() {
+function AlertCard({ title, detail }) {
   return (
     <div className="fade-up" style={{ animationDelay: '140ms',
         margin: '0 18px 24px', borderRadius: 20,
@@ -326,13 +328,13 @@ function AlertCard() {
           maxWidth: 240, textWrap: 'pretty',
           fontVariationSettings: '"opsz" 30',
         }}>
-          Wheat blight risk rising in <span style={{ fontStyle: 'italic', fontWeight: 400 }}>3 farms</span>
+          {title || <>Wheat blight risk rising in <span style={{ fontStyle: 'italic', fontWeight: 400 }}>3 farms</span></>}
         </h3>
         <p style={{
           fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink-soft)',
           margin: '8px 0 0', lineHeight: 1.45,
         }}>
-          48mm rainfall + humidity spike · <span style={{ color: 'var(--ink)' }}>2h ago</span>
+          {detail || <>48mm rainfall + humidity spike · <span style={{ color: 'var(--ink)' }}>2h ago</span></>}
         </p>
 
         {/* mini chart */}
@@ -692,6 +694,23 @@ function VoiceFAB() {
 // Screen
 // ===================================================================
 function MorningBriefing() {
+  const [briefingData, setBriefingData] = useState(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/briefing?rep_id=REP_0001`)
+      .then(r => r.json())
+      .then(d => setBriefingData(d.briefing || null))
+      .catch(() => {});
+  }, []);
+
+  const heroSubtitle = briefingData?.insight || null;
+  const alertTitle = typeof briefingData?.risk_alert === 'string'
+    ? briefingData.risk_alert
+    : briefingData?.risk_alert?.title || null;
+  const alertDetail = typeof briefingData?.risk_alert === 'object' && briefingData?.risk_alert?.detail
+    ? briefingData.risk_alert.detail
+    : null;
+
   const farmers = [
     {
       name: 'Ramesh Yadav', initials: 'RY', risk: 'HIGH', confidence: 94,
@@ -756,9 +775,9 @@ function MorningBriefing() {
 
       <div style={{ position: 'relative', zIndex: 2, paddingBottom: 150 }}>
         <TopStrip/>
-        <Hero/>
+        <Hero subtitle={heroSubtitle}/>
         <StatsRibbon/>
-        <AlertCard/>
+        <AlertCard title={alertTitle} detail={alertDetail}/>
         <SectionHeader/>
         <FilterChips/>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '0 18px' }}>

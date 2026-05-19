@@ -81,6 +81,39 @@
   const { useState, useEffect, useRef } = React;
 
   // ===================================================================
+  // Backend API
+  // ===================================================================
+  const API_BASE = window.API_BASE || 'http://localhost:8000';
+
+  // Hardoi district center + per-stop offset so backend stops have real coords
+  const HARDOI_LAT = 27.41, HARDOI_LNG = 80.13;
+  const STOP_OFFSETS = [
+    [ 0.018, -0.012],
+    [ 0.001,  0.015],
+    [-0.018, -0.001],
+    [-0.034,  0.008],
+    [-0.052, -0.018],
+    [-0.066,  0.022],
+    [ 0.030,  0.030],
+    [-0.010, -0.028],
+  ];
+
+  function mapApiStop(s, i) {
+    const [dLat, dLng] = STOP_OFFSETS[i % STOP_OFFSETS.length];
+    const risk = s.priority === 1 ? 'HIGH' : s.priority === 2 ? 'MEDIUM' : 'LOW';
+    return {
+      id: s.retailer_id || `s${i + 1}`,
+      name: s.tehsil ? `${s.tehsil} Stop` : `Stop ${i + 1}`,
+      type: 'retailer',
+      risk,
+      lat: HARDOI_LAT + dLat,
+      lng: HARDOI_LNG + dLng,
+      details: s.pitch || `Last visit ${s.days_since_last_visit ?? '?'} days ago`,
+      time: `${String(9 + Math.floor(i * 1.5)).padStart(2,'0')}:${i % 2 === 0 ? '00' : '30'} AM`,
+    };
+  }
+
+  // ===================================================================
   // Icons
   // ===================================================================
   const Icon = ({ d, size = 20, stroke = 'currentColor', fill = 'none', vb = '0 0 24 24', style }) => (
@@ -283,6 +316,17 @@
     const [filter, setFilter]         = useState('All');
     const [sheetExpanded, setSheet]   = useState(false);
     const [emergencyMode, setEmergency] = useState(false);
+
+    // Fetch live route from backend; fall back to INITIAL_STOPS if unavailable
+    useEffect(() => {
+      fetch(`${API_BASE}/api/route?rep_id=REP_0001`)
+        .then(r => r.json())
+        .then(data => {
+          const arr = Array.isArray(data) ? data : (data.stops || data.route || []);
+          if (arr.length > 0) setStops(arr.map(mapApiStop));
+        })
+        .catch(() => {});
+    }, []);
 
     useEffect(() => {
       const t = setTimeout(() => setEmergency(true), 3500);

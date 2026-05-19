@@ -4,32 +4,31 @@
 const { useState, useEffect, useRef, useMemo } = React;
 
 // ===================================================================
-// Groq config — replace with real key or set via window.GROQ_API_KEY
+// Backend API config
 // ===================================================================
-const GROQ_API_KEY = window.GROQ_API_KEY || '';
-const GROQ_MODEL   = 'llama-3.3-70b-versatile';
-const GROQ_SYSTEM  = `You are AgroPilot AI, an expert agricultural field advisor for Syngenta field reps in India.
-You help field reps advise farmers on crop disease, fungicide selection, dosage, and timing.
-Always respond in valid JSON with this exact shape:
-{"text":"<one sentence diagnosis or opener>","sections":[{"heading":"<title>","bullets":["<item>","<item>"]}]}
-Use **bold** inside strings for emphasis. Be concise. Max 3 sections, 3 bullets each.
-Context: Hardoi district, UP. Current farmer: Ramesh Singh. Crop: Wheat HD-2967. Stage: Flowering.`;
+const API_BASE = window.API_BASE || 'http://localhost:8000';
 
-async function callGroq(userMessage, history) {
-  if (!GROQ_API_KEY) return null;
-  const messages = [
-    ...history.slice(-6).map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text || '' })),
-    { role: 'user', content: userMessage },
-  ];
+async function callBackend(userMessage, history) {
+  const messages = history
+    .filter(m => !m.hero && !m.thinking && m.text)
+    .slice(-8)
+    .map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }));
+  messages.push({ role: 'user', content: userMessage });
   try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: GROQ_MODEL, messages: [{ role: 'system', content: GROQ_SYSTEM }, ...messages], max_tokens: 600, temperature: 0.7, response_format: { type: 'json_object' } }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, rep_id: 'REP_0001' }),
     });
     const data = await res.json();
-    const parsed = JSON.parse(data.choices[0].message.content);
-    return parsed;
+    const raw = data.response || '';
+    // Try to parse JSON sections from backend response
+    try {
+      const parsed = JSON.parse(raw);
+      return { text: parsed.text || raw, sections: (parsed.sections || []).map(s => ({ type: 'section', ...s })) };
+    } catch (_) {
+      return { text: raw, sections: [] };
+    }
   } catch (_) {
     return null;
   }
@@ -99,8 +98,8 @@ function gOffset(a, b, d) {
   return { x: a.x + (dx / len) * d, y: a.y + (dy / len) * d };
 }
 
-function GraphCanvas({ selected, onSelect }) {
-  const edges = GRAPH_NODES.map((n) => {
+function GraphCanvas({ nodes = GRAPH_NODES, selected, onSelect }) {
+  const edges = nodes.map((n) => {
     const p = gPolar(n.angle, GRAPH_RADIUS);
     const a = gOffset(p, GRAPH_CENTER, 30);
     const b = gOffset(GRAPH_CENTER, p, 47);
@@ -129,7 +128,7 @@ function GraphCanvas({ selected, onSelect }) {
             </g>
           </g>
         ))}
-        {GRAPH_NODES.map((n, i) => {
+        {nodes.map((n, i) => {
           const p = gPolar(n.angle, GRAPH_RADIUS);
           const dim = isDim(n.id);
           const active = selected === n.id;
@@ -170,8 +169,8 @@ function GraphCanvas({ selected, onSelect }) {
   );
 }
 
-function NodeFlyout({ nodeId, onClose }) {
-  const node = GRAPH_NODES.find(n => n.id === nodeId);
+function NodeFlyout({ nodeId, nodes: flyoutNodes = GRAPH_NODES, onClose }) {
+  const node = flyoutNodes.find(n => n.id === nodeId);
   if (!node) return null;
   return (
     <>
@@ -203,8 +202,24 @@ function NodeFlyout({ nodeId, onClose }) {
   );
 }
 
+const NODE_ICON_MAP = { farmer: IUser, crop: IWheat, variety: IWheat, rain: ICloudRain, humidity: IDroplets, history: IHistory, stock: IPin };
+
 function ReasoningOverlay({ onClose }) {
   const [selected, setSelected] = useState(null);
+  const [graphData, setGraphData] = useState(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/graph?rep_id=REP_0001`)
+      .then(r => r.json())
+      .then(d => setGraphData(d))
+      .catch(() => {});
+  }, []);
+
+  // Merge live backend data with local icon map; fall back to hardcoded if fetch fails
+  const liveNodes = graphData
+    ? graphData.nodes.map(n => ({ ...n, Icon: NODE_ICON_MAP[n.id] || ISpark }))
+    : GRAPH_NODES;
+  const liveSteps = graphData ? graphData.steps : GRAPH_STEPS;
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 150, display: 'flex', flexDirection: 'column', background: 'var(--bg)', animation: 'slideUpFull 400ms cubic-bezier(0.16,1,0.3,1) both' }}>
       {/* Header */}
@@ -225,7 +240,7 @@ function ReasoningOverlay({ onClose }) {
 
       {/* Scrollable body */}
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 110 }} className="no-scrollbar">
-        <GraphCanvas selected={selected} onSelect={(id) => setSelected(id === selected ? null : id)}/>
+        <GraphCanvas nodes={liveNodes} selected={selected} onSelect={(id) => setSelected(id === selected ? null : id)}/>
 
         {/* Reasoning trail */}
         <div style={{ background: 'var(--surface)', borderTopLeftRadius: 24, borderTopRightRadius: 24, boxShadow: '0 -10px 30px rgba(20,18,12,0.10)', padding: '10px 20px 18px' }}>
@@ -240,7 +255,7 @@ function ReasoningOverlay({ onClose }) {
             <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>5 steps</span>
           </div>
           <div style={{ marginTop: 14 }}>
-            {GRAPH_STEPS.map((s, i) => (
+            {liveSteps.map((s, i) => (
               <div key={s.n} className="fade-up" style={{ display: 'grid', gridTemplateColumns: '32px 1fr 18px', columnGap: 12, alignItems: 'flex-start', padding: '8px 0', borderTop: i === 0 ? 'none' : '1px solid var(--border)', animationDelay: `${200 + i * 70}ms` }}>
                 <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--primary-soft)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces', fontWeight: 500, fontSize: 13 }}>{s.n}</div>
                 <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.42, paddingTop: 4 }}>
@@ -264,7 +279,7 @@ function ReasoningOverlay({ onClose }) {
         </div>
       </div>
 
-      {selected && <NodeFlyout nodeId={selected} onClose={() => setSelected(null)}/>}
+      {selected && <NodeFlyout nodeId={selected} nodes={liveNodes} onClose={() => setSelected(null)}/>}
     </div>
   );
 }
@@ -703,9 +718,9 @@ function ChatScreen() {
 
     setFollowUps(FOLLOW_UP_POOL.filter(f => f !== text).slice(0, 3));
 
-    // Try Groq first, fall back to local simulation
-    const groqReply = await callGroq(text, messages);
-    const reply = groqReply || simulateAIReply(text);
+    // Try backend first, fall back to local simulation
+    const backendReply = await callBackend(text, messages);
+    const reply = backendReply || simulateAIReply(text);
 
     setMessages(prev => [
       ...prev.filter(m => m.id !== thinkingId),
