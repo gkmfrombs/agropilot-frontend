@@ -424,6 +424,60 @@ export default function AIConsultant() {
     return () => { abortRef.current?.abort() }
   }, [])
 
+  // Parses LLM markdown response into structured card format.
+  // Falls back to plain markdown if the response doesn't match the template.
+  const parseStructuredResponse = (raw: string): Partial<Message> => {
+    const lines = raw.split('\n')
+
+    // Extract ## heading
+    const headingLine = lines.find(l => l.startsWith('## '))
+    const title = headingLine ? headingLine.replace(/^##\s+/, '').trim() : null
+
+    // Extract first **bold recommendation** line
+    const boldMatch = raw.match(/\*\*([^*\n]{10,120})\*\*/)
+    const headline = boldMatch ? boldMatch[1].trim() : null
+
+    // Extract bullet points (lines starting with - or *)
+    const bulletLines = lines
+      .filter(l => /^[-*]\s+/.test(l.trim()))
+      .map(l => l.replace(/^[-*]\s+/, '').trim())
+      .filter(b => b.length > 0)
+
+    // Extract confidence score
+    const confMatch = raw.match(/Confidence:\s*(\d+)%/)
+    const confidence = confMatch ? parseInt(confMatch[1]) : undefined
+
+    // Extract product + dose from **Confidence: X%** · Product: Y · Dose: Z line
+    const metaMatch = raw.match(/Product:\s*([^·\n]+)/i)
+    const product = metaMatch ? metaMatch[1].trim() : null
+
+    // Extract ROI blockquote
+    const roiMatch = raw.match(/>\s*\*\*ROI[^:]*:\*\*\s*(.+)/)
+    const roi = roiMatch ? roiMatch[1].trim() : null
+
+    // If we found a title + bullets → render as fancy card
+    if (title && bulletLines.length >= 2) {
+      const extraBullets = [
+        product ? `Product: ${product}` : null,
+        roi ? `ROI: ${roi}` : null,
+      ].filter(Boolean) as string[]
+
+      return {
+        text: headline || title,
+        bullets: [...bulletLines, ...extraBullets],
+        confidence,
+        showSources: true,
+        followUps: ['What dosage?', 'Check stock', 'Show reasoning graph'],
+      }
+    }
+
+    // Fallback — render as markdown
+    return {
+      text: raw || 'Got it.',
+      followUps: ['What dosage?', 'Check stock', 'Show route'],
+    }
+  }
+
   const sendMessage = async (text?: string) => {
     const userMsg = (text ?? input).trim()
     if (!userMsg || loading) return
@@ -503,15 +557,13 @@ export default function AIConsultant() {
         }
       }
 
-      // Stream finished — attach follow-ups and persist to history
+      // Stream finished — parse structured markdown into card format
       historyRef.current = [...historyRef.current, { role: 'assistant', content: accumulated }]
+
+      const parsed = parseStructuredResponse(accumulated)
       setMessages(prev => {
         const next = [...prev]
-        next[next.length - 1] = {
-          text: accumulated || 'Got it.',
-          isUser: false,
-          followUps: ['What dosage?', 'Check stock', 'Show route'],
-        }
+        next[next.length - 1] = { ...parsed, isUser: false }
         return next
       })
     } catch (err) {
