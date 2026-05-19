@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -405,6 +405,7 @@ function ChatMessage({ message, delay, onSend }: { message: Message; delay: numb
 export default function AIConsultant() {
   const { t } = useTranslation()
   const { name } = useAuth()
+  const location = useLocation()
   const [messages, setMessages] = useState<Message[]>(() => buildInitialMessages(name))
   const [input, setInput] = useState('')
   const [recording, setRecording] = useState(false)
@@ -422,6 +423,16 @@ export default function AIConsultant() {
   // Cancel any in-flight stream when the component unmounts
   useEffect(() => {
     return () => { abortRef.current?.abort() }
+  }, [])
+
+  // Auto-send prefilled question from crop scanner (or any other screen)
+  useEffect(() => {
+    const prefill = (location.state as any)?.prefill
+    if (prefill) {
+      // Small delay so component fully mounts before sending
+      const t = setTimeout(() => sendMessage(prefill), 400)
+      return () => clearTimeout(t)
+    }
   }, [])
 
   // Parses LLM markdown response into structured card format.

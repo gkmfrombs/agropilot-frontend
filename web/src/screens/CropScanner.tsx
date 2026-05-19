@@ -191,7 +191,11 @@ export default function CropScanner() {
                             </div>
                         )}
                         <div style={{ display: 'flex', gap: 8 }}>
-                            <Link to="/chat" style={{ flex: 1, padding: '12px', borderRadius: 12, background: 'rgba(255,255,255,0.2)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600, textAlign: 'center', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.2)' }}>Ask AgroPilot</Link>
+                            <Link
+                                to="/chat"
+                                state={{ prefill: `My ${scan.crop || selectedCrop} crop scan detected ${scan.disease} (${scan.severity} severity). Recommended product: ${p?.name}, dose: ${p?.dose}. What should I do next and where can I get stock?` }}
+                                style={{ flex: 1, padding: '12px', borderRadius: 12, background: 'rgba(255,255,255,0.2)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600, textAlign: 'center', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.2)' }}
+                            >Ask AgroPilot</Link>
                             <Link to="/calculator" style={{ flex: 1, padding: '12px', borderRadius: 12, background: 'rgba(255,255,255,0.2)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600, textAlign: 'center', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.2)' }}>Yield Impact</Link>
                         </div>
                     </div>
