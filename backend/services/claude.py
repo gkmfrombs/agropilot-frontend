@@ -29,7 +29,7 @@ def chat(system: str, messages: list[dict], max_tokens: int = 1024) -> str:
     return response.choices[0].message.content or ""
 
 
-def chat_stream(system: str, messages: list[dict], max_tokens: int = 1024):
+def chat_stream(system: str, messages: list[dict], max_tokens: int = 2048):
     """Yields text chunks for SSE streaming."""
     client = get_client()
     all_messages = [{"role": "system", "content": system}] + messages

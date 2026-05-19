@@ -425,53 +425,56 @@ export default function AIConsultant() {
   }, [])
 
   // Parses LLM markdown response into structured card format.
-  // Falls back to plain markdown if the response doesn't match the template.
+  // Very permissive — tries hard to extract structure, falls back to markdown only if nothing found.
   const parseStructuredResponse = (raw: string): Partial<Message> => {
     const lines = raw.split('\n')
 
-    // Extract ## heading
-    const headingLine = lines.find(l => l.startsWith('## '))
-    const title = headingLine ? headingLine.replace(/^##\s+/, '').trim() : null
+    // Extract any markdown heading (##, #, ###)
+    const headingLine = lines.find(l => /^#{1,3}\s+/.test(l))
+    const title = headingLine ? headingLine.replace(/^#{1,3}\s+/, '').trim() : null
 
-    // Extract first **bold recommendation** line
-    const boldMatch = raw.match(/\*\*([^*\n]{10,120})\*\*/)
-    const headline = boldMatch ? boldMatch[1].trim() : null
+    // Extract first bold line that looks like a recommendation (skip "Confidence:" line)
+    const boldMatches = [...raw.matchAll(/\*\*([^*\n]{10,160})\*\*/g)]
+    const headline = boldMatches
+      .map(m => m[1].trim())
+      .find(t => !t.startsWith('Confidence') && !t.startsWith('ROI') && !t.startsWith('Product'))
+      || null
 
-    // Extract bullet points (lines starting with - or *)
+    // Extract bullets — support "- ", "* ", "• ", and numbered "1. " lists
     const bulletLines = lines
-      .filter(l => /^[-*]\s+/.test(l.trim()))
-      .map(l => l.replace(/^[-*]\s+/, '').trim())
-      .filter(b => b.length > 0)
+      .filter(l => /^(\s*[-*•]\s+|\s*\d+\.\s+)/.test(l))
+      .map(l => l.replace(/^(\s*[-*•]\s+|\s*\d+\.\s+)/, '').trim())
+      .filter(b => b.length > 5)
 
     // Extract confidence score
-    const confMatch = raw.match(/Confidence:\s*(\d+)%/)
+    const confMatch = raw.match(/Confidence:\s*(\d+)%/i)
     const confidence = confMatch ? parseInt(confMatch[1]) : undefined
 
-    // Extract product + dose from **Confidence: X%** · Product: Y · Dose: Z line
-    const metaMatch = raw.match(/Product:\s*([^·\n]+)/i)
+    // Extract product name
+    const metaMatch = raw.match(/Product:\s*([^·\n\*]+)/i)
     const product = metaMatch ? metaMatch[1].trim() : null
 
     // Extract ROI blockquote
-    const roiMatch = raw.match(/>\s*\*\*ROI[^:]*:\*\*\s*(.+)/)
+    const roiMatch = raw.match(/>\s*\*{0,2}ROI[^:]*:\*{0,2}\s*(.+)/i)
     const roi = roiMatch ? roiMatch[1].trim() : null
 
-    // If we found a title + bullets → render as fancy card
-    if (title && bulletLines.length >= 2) {
+    // Build card if we have a title OR at least 2 bullets
+    if (title || bulletLines.length >= 2) {
       const extraBullets = [
-        product ? `Product: ${product}` : null,
-        roi ? `ROI: ${roi}` : null,
+        product && !bulletLines.some(b => b.toLowerCase().includes('product')) ? `Product: ${product}` : null,
+        roi && !bulletLines.some(b => b.toLowerCase().includes('roi')) ? `ROI: ${roi}` : null,
       ].filter(Boolean) as string[]
 
       return {
-        text: headline || title,
-        bullets: [...bulletLines, ...extraBullets],
+        text: headline || title || 'AgroPilot Recommendation',
+        bullets: [...bulletLines, ...extraBullets].slice(0, 8),
         confidence,
         showSources: true,
         followUps: ['What dosage?', 'Check stock', 'Show reasoning graph'],
       }
     }
 
-    // Fallback — render as markdown
+    // True fallback — plain markdown (should rarely hit this)
     return {
       text: raw || 'Got it.',
       followUps: ['What dosage?', 'Check stock', 'Show route'],
