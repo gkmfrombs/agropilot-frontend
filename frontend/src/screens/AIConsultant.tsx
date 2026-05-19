@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { IChev, IMic, TopStrip, ISend, IClose, Eyebrow, PulseDot } from '../components/Shared';
+import { useTranslation } from '../lib/i18n';
 
 function ScarecrowAvatar({ size = 36 }: { size?: number }) {
     return (
@@ -50,7 +51,7 @@ const initialMessages: Message[] = [
     { text: "Good morning Arjun! I'm ready to help with your field visits today. What do you need?", isUser: false },
 ];
 
-function ChatMessage({ message, isUser, showGraph, delay }: any) {
+function ChatMessage({ message, isUser, showGraph, delay, whyLabel }: any) {
     return (
         <div className="slide-in-l" style={{ animationDelay: `${delay}ms`, display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start', marginBottom: 16 }}>
             {!isUser && (
@@ -65,7 +66,7 @@ function ChatMessage({ message, isUser, showGraph, delay }: any) {
                 {message}
                 {!isUser && showGraph && (
                     <button onClick={showGraph} style={{ marginTop: 12, padding: '8px 12px', width: '100%', borderRadius: 12, background: 'var(--surface-warm)', border: '1px solid var(--border)', color: 'var(--primary)', fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                        Why this recommendation? <IChev size={14} />
+                        {whyLabel} <IChev size={14} />
                     </button>
                 )}
             </div>
@@ -73,7 +74,7 @@ function ChatMessage({ message, isUser, showGraph, delay }: any) {
     );
 }
 
-function ReasoningGraphModal({ onClose }: any) {
+function ReasoningGraphModal({ onClose, t }: any) {
     const signals = [
         { label: 'Ramesh\n(Farmer)', x: 20, y: 18, color: 'var(--ink)' },
         { label: 'HD-2967\n(Wheat)', x: 78, y: 15, color: 'var(--ink)' },
@@ -95,7 +96,7 @@ function ReasoningGraphModal({ onClose }: any) {
         <div className="fade-up" style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'var(--bg)', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
             <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 2 }}>
                 <div>
-                    <h2 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, margin: 0, color: 'var(--ink)' }}>AI Reasoning Graph</h2>
+                    <h2 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, margin: 0, color: 'var(--ink)' }}>{t('reasoningGraph')}</h2>
                     <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: 'var(--ink-soft)' }}>6 signals · 1 outcome</span>
                 </div>
                 <button onClick={onClose} style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: 'var(--ink)' }}><IClose size={24} /></button>
@@ -118,7 +119,7 @@ function ReasoningGraphModal({ onClose }: any) {
 
             {/* Reasoning Trail */}
             <div style={{ padding: '0 18px 20px' }}>
-                <Eyebrow>Reasoning Trail</Eyebrow>
+                <Eyebrow>{t('reasoningTrail')}</Eyebrow>
                 <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {steps.map((step, i) => (
                         <div key={i} style={{ display: 'flex', gap: 10, padding: '10px 14px', background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)' }}>
@@ -131,7 +132,7 @@ function ReasoningGraphModal({ onClose }: any) {
 
             <div style={{ padding: '0 18px 24px', display: 'flex', gap: 10 }}>
                 <button onClick={onClose} style={{ flex: 1, padding: '15px', borderRadius: 16, background: 'var(--primary)', color: 'white', border: 'none', fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, fontWeight: 600, cursor: 'pointer', boxShadow: '0 6px 16px rgba(46,74,58,0.28)' }}>
-                    Use this Answer
+                    {t('useThisAnswer')}
                 </button>
             </div>
         </div>
@@ -139,6 +140,7 @@ function ReasoningGraphModal({ onClose }: any) {
 }
 
 export default function AIConsultant() {
+    const { t } = useTranslation();
     const [showGraph, setShowGraph] = useState(false);
     const [messages, setMessages] = useState<Message[]>(initialMessages);
     const [input, setInput] = useState('');
@@ -198,6 +200,7 @@ export default function AIConsultant() {
                         isUser={msg.isUser}
                         delay={i * 100}
                         showGraph={msg.hasGraph ? () => setShowGraph(true) : undefined}
+                        whyLabel={t('whyRecommendation')}
                     />
                 ))}
             </div>
@@ -222,7 +225,7 @@ export default function AIConsultant() {
                 </div>
             </div>
 
-            {showGraph && <ReasoningGraphModal onClose={() => setShowGraph(false)} />}
+            {showGraph && <ReasoningGraphModal onClose={() => setShowGraph(false)} t={t} />}
         </div>
     );
 }

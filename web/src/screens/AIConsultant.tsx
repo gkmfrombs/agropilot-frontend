@@ -1,5 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { IChev, IMic, ISend, IClose, Icon } from '../components/Shared'
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -21,6 +24,117 @@ const chatCss = `
       height: 100dvh;
     }
   }
+  /* ── Markdown body ─────────────────────────────────────────── */
+  .md-body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.65;
+  }
+  .md-body > *:first-child { margin-top: 0 !important; }
+  .md-body > *:last-child  { margin-bottom: 0 !important; }
+
+  /* Paragraphs */
+  .md-body p { margin: 0 0 10px; }
+
+  /* Headings — Fraunces serif to match design system */
+  .md-body h1, .md-body h2, .md-body h3, .md-body h4 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin: 16px 0 6px;
+  }
+  .md-body h1 { font-size: 18px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+  .md-body h2 { font-size: 16px; }
+  .md-body h3 { font-size: 14.5px; color: var(--primary); }
+  .md-body h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+
+  /* Lists — custom arrow bullets matching design system */
+  .md-body ul, .md-body ol { margin: 8px 0 10px; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .md-body ol { counter-reset: md-ol; }
+  .md-body li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+  .md-body ul li::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--primary);
+    opacity: 0.7;
+    flex-shrink: 0;
+    margin-top: 7px;
+  }
+  .md-body ol li::before {
+    counter-increment: md-ol;
+    content: counter(md-ol);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px; height: 18px;
+    border-radius: 6px;
+    background: rgba(46,74,58,0.10);
+    color: var(--primary);
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  /* nested lists */
+  .md-body li > ul, .md-body li > ol { margin: 4px 0 0; }
+
+  /* Inline formatting */
+  .md-body strong { font-weight: 700; color: var(--ink); }
+  .md-body em     { font-style: italic; color: var(--ink-soft); }
+
+  /* Inline code */
+  .md-body code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    background: rgba(46,74,58,0.09);
+    color: var(--primary);
+    padding: 1px 6px;
+    border-radius: 5px;
+    border: 1px solid rgba(46,74,58,0.12);
+  }
+  /* Code block */
+  .md-body pre {
+    background: rgba(20,18,12,0.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    overflow-x: auto;
+    margin: 10px 0;
+  }
+  .md-body pre code { background: none; border: none; padding: 0; font-size: 12.5px; color: var(--ink); }
+
+  /* Blockquote — left-border accent */
+  .md-body blockquote {
+    margin: 10px 0;
+    padding: 8px 14px;
+    border-left: 3px solid var(--primary);
+    background: rgba(46,74,58,0.04);
+    border-radius: 0 8px 8px 0;
+    color: var(--ink-soft);
+    font-style: italic;
+    font-size: 13.5px;
+  }
+
+  /* Horizontal rule */
+  .md-body hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+  /* Tables */
+  .md-body table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 10px 0; border-radius: 8px; overflow: hidden; }
+  .md-body thead { background: var(--surface-warm); }
+  .md-body th { font-weight: 700; padding: 7px 10px; border-bottom: 2px solid var(--border); text-align: left; color: var(--ink); }
+  .md-body td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  .md-body tr:last-child td { border-bottom: none; }
 `
 
 // Local icons not in Shared
@@ -140,22 +254,25 @@ function AIMessageCard({ message }: { message: Message }) {
         {message.bullets ? 'Recommendation' : 'AgroPilot'}
       </div>
 
-      {/* Headline or plain text or loading dots */}
+      {/* Headline or markdown stream or loading dots */}
       {message.bullets ? (
         <h3 style={{ marginTop: 8, marginBottom: 0, fontFamily: 'Fraunces', fontWeight: 500, fontSize: 17, lineHeight: 1.22, letterSpacing: '-0.01em', color: 'var(--ink)', minHeight: 42 }}>
           {typed}
           {!done && <span className="caret" style={{ display: 'inline-block', width: 2, height: '1em', background: 'var(--primary)', marginLeft: 2, verticalAlign: 'text-bottom', animation: 'caretBlink 0.9s steps(1) infinite' }} />}
         </h3>
       ) : isLoading ? (
-        // Loading dots — visible until the very first SSE token appends to message.text
         <div style={{ marginTop: 10, display: 'flex', gap: 4 }}>
           {[0, 1, 2].map(i => (
             <span key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--border)', animation: `dotPulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />
           ))}
         </div>
       ) : (
-        // Real stream text — rendered as-is, token by token
-        <p style={{ marginTop: 10, marginBottom: 0, fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: 'var(--ink)', lineHeight: 1.5 }}>{message.text}</p>
+        <>
+          <div style={{ height: 1, background: 'var(--border)', margin: '10px -2px 12px' }} />
+          <div className="md-body">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
+          </div>
+        </>
       )}
 
       {/* Divider + bullets for structured responses */}
@@ -285,6 +402,7 @@ function ChatMessage({ message, delay, onSend }: { message: Message; delay: numb
 }
 
 export default function AIConsultant() {
+  const { t } = useTranslation()
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [input, setInput] = useState('')
   const [recording, setRecording] = useState(false)
@@ -358,13 +476,13 @@ export default function AIConsultant() {
           // Each SSE event may contain one or more "data: ..." lines
           for (const line of part.split('\n')) {
             if (!line.startsWith('data:')) continue
-            const payload = line.slice(5).trim()
+            // Slice off "data:" and exactly one optional space — preserves
+            // token-leading spaces that the LLM emits (e.g. " checked")
+            const payload = line.replace(/^data: ?/, '')
 
             if (payload === '[DONE]') break outer
 
-            // Strip markdown bold markers that the backend may emit
-            const token = payload.replace(/\*\*/g, '')
-            accumulated += token
+            accumulated += payload
 
             if (firstToken) {
               // First real token: turn off loading state so dots disappear
@@ -429,7 +547,7 @@ export default function AIConsultant() {
             <span style={{ width: 7, height: 7, borderRadius: 99, background: '#7B9C6A', boxShadow: '0 0 0 2.5px rgba(123,156,106,0.18)', display: 'inline-block' }} />
             AgroPilot
           </div>
-          <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: 'var(--ink-soft)', marginTop: 2 }}>GraphRAG · 6 signals active</div>
+          <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: 'var(--ink-soft)', marginTop: 2 }}>{t('chat.rag_label', { count: 6 })}</div>
         </div>
         <Link to="/graph" style={{ width: 36, height: 36, borderRadius: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary-soft)', border: '1px solid var(--border)', color: 'var(--primary)', textDecoration: 'none', fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, flexDirection: 'column', gap: 1 }}>
           <IArrowR size={13} stroke="var(--primary)" style={{ transform: 'rotate(-45deg)' }} />
@@ -463,7 +581,7 @@ export default function AIConsultant() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendMessage()}
-            placeholder="Ask anything…"
+            placeholder={t('chat.placeholder')}
             autoFocus
             style={{ flex: 1, minWidth: 0, height: 36, background: 'transparent', border: 'none', outline: 'none', fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: 'var(--ink)' }}
           />

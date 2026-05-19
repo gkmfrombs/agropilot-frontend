@@ -1,14 +1,16 @@
 ﻿import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { 
+import { useTranslation } from 'react-i18next';
+import {
     ICloudRain, IChev, INav, IPhone, ICheck, ISpark,
-    PulseDot, Eyebrow, WheatStalk, TopStrip, BottomNav, VoiceFAB 
+    PulseDot, Eyebrow, WheatStalk, TopStrip, BottomNav, VoiceFAB
 } from '../components/Shared';
 
 const PHOTO_HERO = 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=900&q=80&auto=format&fit=crop';
 const PHOTO_WHEAT = 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&q=80&auto=format&fit=crop';
 
 function Hero() {
+    const { t } = useTranslation();
     return (
         <div className="fade-up" style={{ animationDelay: '0ms', margin: '14px 18px 0', borderRadius: 24, overflow: 'hidden', position: 'relative', minHeight: 196, background: '#2E4A3A', boxShadow: '0 1px 2px rgba(20,18,12,0.06), 0 18px 36px rgba(20,18,12,0.14)' }}>
             <div className="ken-burns" style={{ position: 'absolute', inset: 0, backgroundImage: `url(${PHOTO_HERO})`, backgroundSize: 'cover', backgroundPosition: 'center 60%', filter: 'saturate(1.05) contrast(1.02)' }} />
@@ -24,9 +26,9 @@ function Hero() {
                 </div>
                 <div style={{ marginTop: 'auto' }}>
                     <h1 style={{ fontFamily: 'Fraunces', fontWeight: 500, fontSize: 36, lineHeight: 1.02, letterSpacing: '-0.025em', color: '#FAF6EC', margin: 0, fontVariationSettings: '"opsz" 60', textShadow: '0 2px 18px rgba(20,18,12,0.35)' }}>
-                        Good morning,<br /><span style={{ fontStyle: 'italic', fontWeight: 400 }}>Arjun.</span>
+                        {t('briefing.greeting', { name: 'Arjun' })}
                     </h1>
-                    <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 500, color: 'rgba(245,241,232,0.82)', margin: '8px 0 0' }}>5 farms need you before the rain arrives.</p>
+                    <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 500, color: 'rgba(245,241,232,0.82)', margin: '8px 0 0' }}>{t('briefing.subtitle', { count: 5 })}</p>
                 </div>
             </div>
         </div>
@@ -68,6 +70,7 @@ function MiniBars() {
 }
 
 function AlertCard() {
+    const { t } = useTranslation();
     return (
         <div className="fade-up" style={{ animationDelay: '140ms', margin: '0 18px 24px', borderRadius: 20, background: 'var(--surface)', boxShadow: '0 1px 2px rgba(20,18,12,0.04), 0 10px 28px rgba(20,18,12,0.07)', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: 'var(--danger)' }} />
@@ -77,10 +80,10 @@ function AlertCard() {
             <div style={{ padding: '16px 18px 16px 22px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                     <PulseDot color="#B85C3C" size={6} />
-                    <Eyebrow color="var(--danger)">New Predictive Alert</Eyebrow>
+                    <Eyebrow color="var(--danger)">{t('briefing.alert_eyebrow')}</Eyebrow>
                 </div>
                 <h3 style={{ fontFamily: 'Fraunces', fontWeight: 500, fontSize: 21, lineHeight: 1.14, letterSpacing: '-0.015em', color: 'var(--ink)', margin: 0, maxWidth: 240, fontVariationSettings: '"opsz" 30' }}>
-                    Wheat blight risk rising in <span style={{ fontStyle: 'italic', fontWeight: 400 }}>3 farms</span>
+                    {t('briefing.alert_title', { count: 3 })}
                 </h3>
                 <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink-soft)', margin: '8px 0 0', lineHeight: 1.45 }}>
                     48mm rainfall + humidity spike · <span style={{ color: 'var(--ink)' }}>2h ago</span>
@@ -103,28 +106,35 @@ function AlertCard() {
 }
 
 function SectionHeader() {
+    const { t } = useTranslation();
     return (
         <div className="fade-up" style={{ animationDelay: '210ms', padding: '0 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ width: 5, height: 5, borderRadius: 99, background: 'var(--accent)', display: 'inline-block' }} />
-                <h2 style={{ fontFamily: 'Fraunces', fontWeight: 500, fontSize: 19, letterSpacing: '-0.01em', color: 'var(--ink)', margin: 0 }}>Today's priority visits</h2>
+                <h2 style={{ fontFamily: 'Fraunces', fontWeight: 500, fontSize: 19, letterSpacing: '-0.01em', color: 'var(--ink)', margin: 0 }}>{t('briefing.priority_visits')}</h2>
             </div>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 999, background: 'rgba(201,151,74,0.18)', color: '#8C6420', fontFamily: 'Plus Jakarta Sans', fontWeight: 700, fontSize: 11, letterSpacing: '0.04em' }}>5 urgent</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 999, background: 'rgba(201,151,74,0.18)', color: '#8C6420', fontFamily: 'Plus Jakarta Sans', fontWeight: 700, fontSize: 11, letterSpacing: '0.04em' }}>{t('briefing.urgent', { count: 5 })}</span>
         </div>
     );
 }
 
 function FilterChips() {
-    const [active, setActive] = useState('High Risk (5)');
-    const chips = [{ label: 'All', count: 12 }, { label: 'High Risk', count: 5 }, { label: 'Medium', count: 4 }, { label: 'Low', count: 3 }, { label: 'Routine', count: null }];
+    const { t } = useTranslation();
+    const [activeIdx, setActiveIdx] = useState(1);
+    const chips = [
+        { key: 'briefing.filter.all',     count: 12 },
+        { key: 'briefing.filter.high',    count: 5  },
+        { key: 'briefing.filter.medium',  count: 4  },
+        { key: 'briefing.filter.low',     count: 3  },
+        { key: 'briefing.filter.routine', count: null },
+    ];
     return (
         <div className="fade-up no-scrollbar" style={{ animationDelay: '270ms', display: 'flex', gap: 8, overflowX: 'auto', padding: '2px 18px 6px', marginBottom: 14 }}>
-            {chips.map(c => {
-                const key = c.count != null ? `${c.label} (${c.count})` : c.label;
-                const on = key === active;
+            {chips.map((c, i) => {
+                const on = i === activeIdx;
                 return (
-                    <button key={c.label} onClick={() => setActive(key)} style={{ flex: 'none', padding: '8px 14px', borderRadius: 999, fontFamily: 'Plus Jakarta Sans', fontWeight: 600, fontSize: 12.5, background: on ? 'var(--primary)' : 'var(--surface)', color: on ? 'white' : 'var(--ink)', border: on ? '1px solid var(--primary)' : '1px solid var(--border)', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: on ? '0 4px 14px rgba(46,74,58,0.18)' : 'none', transition: 'background 200ms ease, color 200ms ease', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        {c.label}
+                    <button key={c.key} onClick={() => setActiveIdx(i)} style={{ flex: 'none', padding: '8px 14px', borderRadius: 999, fontFamily: 'Plus Jakarta Sans', fontWeight: 600, fontSize: 12.5, background: on ? 'var(--primary)' : 'var(--surface)', color: on ? 'white' : 'var(--ink)', border: on ? '1px solid var(--primary)' : '1px solid var(--border)', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: on ? '0 4px 14px rgba(46,74,58,0.18)' : 'none', transition: 'background 200ms ease, color 200ms ease', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        {t(c.key)}
                         {c.count != null && <span style={{ fontWeight: 700, fontSize: 11, color: on ? 'rgba(255,255,255,0.78)' : 'var(--ink-soft)' }}>{c.count}</span>}
                     </button>
                 );
@@ -140,6 +150,7 @@ const RISK: any = {
 };
 
 function VisitCard({ farmer, index }: any) {
+    const { t } = useTranslation();
     const r = RISK[farmer.risk];
     const ghostBtn: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 11px', borderRadius: 12, background: 'var(--surface-warm)', border: '1px solid var(--border)', fontFamily: 'Plus Jakarta Sans', fontWeight: 600, fontSize: 12, color: 'var(--primary)', cursor: 'pointer', textDecoration: 'none' };
     const ghostBtnDark: React.CSSProperties = { ...ghostBtn, background: 'var(--primary)', border: '1px solid var(--primary)', color: '#FFF', boxShadow: '0 4px 10px rgba(46,74,58,0.20)' };
@@ -151,7 +162,7 @@ function VisitCard({ farmer, index }: any) {
             <div style={{ position: 'absolute', left: 0, top: 14, bottom: 14, width: 3, background: r.rule, borderRadius: 99 }} />
             <div style={{ padding: '16px 18px 14px 20px' }}>
                 {farmer.cached && (
-                    <div style={{ position: 'absolute', top: 12, right: 14, display: 'inline-flex', alignItems: 'center', gap: 3, fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 600, color: 'var(--ink-soft)' }}><ICheck size={11} stroke="#6B6A5F" /> Cached</div>
+                    <div style={{ position: 'absolute', top: 12, right: 14, display: 'inline-flex', alignItems: 'center', gap: 3, fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 600, color: 'var(--ink-soft)' }}><ICheck size={11} stroke="#6B6A5F" /> {t('briefing.cached')}</div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
                     <div style={{ width: 52, height: 52, borderRadius: '50%', flex: 'none', background: farmer.photo ? `center/cover url(${farmer.photo})` : 'var(--primary-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontFamily: 'Fraunces', fontWeight: 500, fontSize: 18, border: '1px solid var(--border)', boxShadow: 'inset 0 0 0 2px #FFF, 0 2px 8px rgba(20,18,12,0.08)' }}>{!farmer.photo && farmer.initials}</div>
@@ -174,9 +185,9 @@ function VisitCard({ farmer, index }: any) {
                     </div>
                 </div>
                 <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
-                    <button style={ghostBtnDark}><INav size={13} stroke="#FFFFFF" /> Navigate</button>
-                    <button style={ghostBtn}><IPhone size={13} stroke="#2E4A3A" /> Call</button>
-                    <Link to={detailLink} style={{ ...ghostBtn, marginLeft: 'auto' }}>Details <IChev size={13} stroke="#2E4A3A" /></Link>
+                    <button style={ghostBtnDark}><INav size={13} stroke="#FFFFFF" /> {t('briefing.navigate')}</button>
+                    <button style={ghostBtn}><IPhone size={13} stroke="#2E4A3A" /> {t('briefing.call')}</button>
+                    <Link to={detailLink} style={{ ...ghostBtn, marginLeft: 'auto' }}>{t('briefing.details')} <IChev size={13} stroke="#2E4A3A" /></Link>
                 </div>
             </div>
         </div>
@@ -184,6 +195,7 @@ function VisitCard({ farmer, index }: any) {
 }
 
 export default function MorningBriefing() {
+    const { t } = useTranslation();
     const [refreshing, setRefreshing] = React.useState(false)
     const touchStartY = React.useRef(0)
 
@@ -213,7 +225,7 @@ export default function MorningBriefing() {
             {refreshing && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 0', background: 'var(--surface-warm)', borderBottom: '1px solid var(--border)' }}>
                     <span className="ptr-spinner" style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid var(--border)', borderTopColor: 'var(--primary)', display: 'inline-block' }} />
-                    <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: 600, color: 'var(--ink-soft)' }}>Refreshing…</span>
+                    <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: 600, color: 'var(--ink-soft)' }}>{t('briefing.refreshing')}</span>
                 </div>
             )}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.45, zIndex: 0, backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.09 0 0 0 0 0.07 0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")` }} />

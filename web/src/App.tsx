@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './components/AuthContext'
 import { ToastProvider } from './components/ToastContext'
 import { ThemeProvider } from './components/ThemeContext'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Login from './screens/Login'
 import Onboarding from './screens/Onboarding'
 import MorningBriefing from './screens/MorningBriefing'
@@ -76,9 +76,9 @@ function ManagerApp() {
  * on first login. Tour state is tracked in localStorage ('agro_tour_done').
  */
 function RepAppWithTour() {
-  const [showTour, setShowTour] = useState(
-    // Show tour only if the user has never completed it
-    () => !localStorage.getItem('agro_tour_done')
+  // In dev: always show tour so the full first-login flow is testable
+  const [showTour, setShowTour] = useState(() =>
+    import.meta.env.DEV ? true : !localStorage.getItem('agro_tour_done')
   )
 
   const handleTourDone = () => {
@@ -95,17 +95,18 @@ function RepAppWithTour() {
 
 function AppRoutes() {
   const { role } = useAuth()
+  // In dev: always start from onboarding so the full flow is testable on every refresh
+  const [onboarded, setOnboarded] = useState(() =>
+    import.meta.env.DEV ? false : !!localStorage.getItem('agro_onboarded')
+  )
 
-  // ── Unauthenticated: check onboarding ──────────────────────────────────────
+  // ── Unauthenticated ────────────────────────────────────────────────────────
   if (!role) {
-    const onboarded = !!localStorage.getItem('agro_onboarded')
-
     return (
       <Routes>
-        {/* If user hasn't seen onboarding yet, always redirect to it first */}
         <Route
           path="/onboarding"
-          element={<Onboarding />}
+          element={<Onboarding onComplete={() => setOnboarded(true)} />}
         />
         <Route
           path="*"

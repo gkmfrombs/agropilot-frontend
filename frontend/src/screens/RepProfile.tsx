@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { IChev, ISettings, ICamera, ICalculator, ISync, IWifi, TopStrip, BottomNav, Eyebrow, Icon } from '../components/Shared';
-import { useAuth } from '../components/AuthContext';
+import { useAuth } from '../components/AuthContext'
+import { useTranslation, LANG_OPTIONS } from '../lib/i18n'
 
 const ILogOut = (p: any) => <Icon {...p} d={<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></>} />;
 
@@ -22,8 +23,8 @@ const kpis = [
 ];
 
 export default function RepProfile() {
-    const [language, setLanguage] = useState('English');
-    const { logout } = useAuth();
+    const { logout } = useAuth()
+    const { lang, setLang } = useTranslation()
     
     return (
         <div style={{ position: 'relative', width: '100%', minHeight: '100%', background: 'var(--bg)', paddingTop: 48 }}>
@@ -84,10 +85,8 @@ export default function RepProfile() {
                 <div style={{ padding: '14px 16px', background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--border)', marginBottom: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Language</span>
-                        <select value={language} onChange={e => setLanguage(e.target.value)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-warm)', fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink)' }}>
-                            <option>English</option>
-                            <option>Hindi</option>
-                            <option>Marathi</option>
+                        <select value={lang} onChange={e => setLang(e.target.value as any)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-warm)', fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink)' }}>
+                            {LANG_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                         </select>
                     </div>
                 </div>

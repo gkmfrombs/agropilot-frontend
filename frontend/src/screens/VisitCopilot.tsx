@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { IChev, INav, IPhone, ISpark, TopStrip, BottomNav, Eyebrow, Icon } from '../components/Shared';
+import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { IChev, INav, IPhone, ISpark, TopStrip, BottomNav, Eyebrow, Icon } from '../components/Shared'
+import { useTranslation } from '../lib/i18n'
 
 const IPackage = (p: any) => <Icon {...p} d={<><line x1="16.5" y1="9.4" x2="7.5" y2="4.21" /><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></>} />;
 
@@ -30,7 +31,8 @@ const statusColors: any = {
 };
 
 export default function VisitCopilot() {
-    const [showCompetitor, setShowCompetitor] = useState(false);
+    const { t } = useTranslation()
+    const [showCompetitor, setShowCompetitor] = useState(false)
     
     return (
         <div style={{ position: 'relative', width: '100%', minHeight: '100%', background: 'var(--bg)', paddingTop: 48 }}>
@@ -40,7 +42,7 @@ export default function VisitCopilot() {
             <div style={{ padding: '14px 18px', background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
                 <Link to="/route" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 12, color: 'var(--ink-soft)', textDecoration: 'none' }}>
                     <IChev size={16} style={{ transform: 'rotate(180deg)' }} />
-                    <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600 }}>Back to Route</span>
+                    <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600 }}>{t('backToRoute')}</span>
                 </Link>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
@@ -55,20 +57,20 @@ export default function VisitCopilot() {
             <div className="fade-up" style={{ margin: '16px 18px', padding: '18px', background: 'var(--surface)', borderRadius: 20, border: '1px solid var(--border)', boxShadow: '0 1px 2px rgba(20,18,12,0.04), 0 10px 28px rgba(20,18,12,0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                     <ISpark size={16} stroke="var(--accent)" />
-                    <Eyebrow color="var(--accent)">AI Recommendation</Eyebrow>
+                    <Eyebrow color="var(--accent)">{t('aiRecommendation')}</Eyebrow>
                 </div>
                 <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, color: 'var(--ink)', lineHeight: 1.5, margin: '0 0 12px' }}>
                     Lead with <strong>Topik 15WP</strong> — this retailer is out of stock and 4 nearby farmers have wheat at heading stage. Restock urgency is high before the rain window Thursday.
                 </p>
                 <Link to="/chat" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 999, background: 'var(--primary)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600, textDecoration: 'none', boxShadow: '0 4px 10px rgba(46,74,58,0.22)' }}>
-                    Ask follow-up <IChev size={14} />
+                    {t('askFollowUp')} <IChev size={14} />
                 </Link>
             </div>
 
             {/* Stock Status */}
             <div className="fade-up" style={{ animationDelay: '100ms', margin: '0 18px 16px' }}>
                 <h2 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--ink)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <IPackage size={18} stroke="var(--primary)" /> Live Stock Status
+                    <IPackage size={18} stroke="var(--primary)" /> {t('liveStockStatus')}
                 </h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {stockItems.map(item => {
@@ -88,7 +90,7 @@ export default function VisitCopilot() {
 
             {/* Talking Points */}
             <div className="fade-up" style={{ animationDelay: '200ms', margin: '0 18px 16px' }}>
-                <h2 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>Agronomic Talking Points</h2>
+                <h2 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>{t('talkingPoints')}</h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {talkingPoints.map((tp, i) => (
                         <div key={i} style={{ display: 'flex', gap: 10, padding: '12px 14px', background: 'var(--surface-warm)', borderRadius: 12, border: '1px solid var(--border)' }}>
@@ -101,7 +103,7 @@ export default function VisitCopilot() {
 
             {/* Nearby Farmers */}
             <div className="fade-up" style={{ animationDelay: '300ms', margin: '0 18px 16px' }}>
-                <h2 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>Nearby Farmers</h2>
+                <h2 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>{t('nearbyFarmers')}</h2>
                 {nearbyFarmers.map((f, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderBottom: i < nearbyFarmers.length - 1 ? '1px solid var(--border)' : 'none' }}>
                         <div>
@@ -116,12 +118,12 @@ export default function VisitCopilot() {
             {/* Competitor Section */}
             <div style={{ margin: '0 18px 16px' }}>
                 <button onClick={() => setShowCompetitor(!showCompetitor)} style={{ width: '100%', padding: '12px 14px', borderRadius: 14, background: 'var(--surface)', border: '1px solid var(--border)', fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    Log Competitor Products
+                    {t('logCompetitor')}
                     <IChev size={16} style={{ transform: showCompetitor ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 200ms' }} />
                 </button>
                 {showCompetitor && (
                     <div className="fade-up" style={{ marginTop: 8, padding: '14px', background: 'var(--surface-warm)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                        <input placeholder="Enter competitor product name..." style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: 'var(--ink)', outline: 'none' }} />
+                        <input placeholder={t('enterCompetitor')} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: 'var(--ink)', outline: 'none' }} />
                     </div>
                 )}
             </div>
@@ -129,7 +131,7 @@ export default function VisitCopilot() {
             {/* CTA */}
             <div style={{ padding: '0 18px 24px' }}>
                 <Link to="/log-visit" style={{ display: 'flex', width: '100%', padding: '15px', borderRadius: 16, background: 'var(--primary)', color: 'white', border: 'none', fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, fontWeight: 600, cursor: 'pointer', boxShadow: '0 6px 16px rgba(46,74,58,0.28), inset 0 1px 0 rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none' }}>
-                    Log Visit Outcome
+                    {t('logVisitOutcome')}
                 </Link>
             </div>
 

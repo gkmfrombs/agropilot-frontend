@@ -1,11 +1,13 @@
 ﻿import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { IChev, IMic, ICheck, TopStrip, BottomNav } from '../components/Shared';
 
 const outcomes = ['Sale Made', 'Order Placed', 'No Purchase', 'Follow-up Required'];
 const products = ['Topik 15 WP', 'Score 250 EC', 'Actara 25 WG', 'Kavach 75 WP', 'Tilt 25 EC', 'Nativo 75 WG', 'Amistar Top'];
 
 export default function LogVisit() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [selectedOutcome, setSelectedOutcome] = useState<string | null>(null);
     const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -23,10 +25,10 @@ export default function LogVisit() {
                 <div className="fade-up" style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, boxShadow: '0 10px 30px rgba(46,74,58,0.3)' }}>
                     <ICheck size={36} stroke="white" />
                 </div>
-                <h2 style={{ fontFamily: 'Fraunces', fontSize: 24, fontWeight: 500, color: 'var(--ink)', margin: '0 0 8px' }}>Visit Logged!</h2>
-                <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: 'var(--ink-soft)', margin: '0 0 24px' }}>Saved offline · will sync when connected.</p>
+                <h2 style={{ fontFamily: 'Fraunces', fontSize: 24, fontWeight: 500, color: 'var(--ink)', margin: '0 0 8px' }}>{t('log.success')}</h2>
+                <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: 'var(--ink-soft)', margin: '0 0 24px' }}>{t('log.saved_offline')}</p>
                 <Link to="/route" style={{ padding: '14px 28px', borderRadius: 16, background: 'var(--primary)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, fontWeight: 600, textDecoration: 'none', boxShadow: '0 6px 16px rgba(46,74,58,0.28)' }}>
-                    Return to Route
+                    {t('log.return_route')}
                 </Link>
             </div>
         );

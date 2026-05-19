@@ -1,5 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { IChev, INav, PulseDot, Eyebrow, TopStrip, BottomNav, Icon } from '../components/Shared';
 
 const IFilter = (p: any) => <Icon {...p} d={<><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></>} />;
@@ -47,16 +48,17 @@ function MapPlaceholder() {
 }
 
 export default function RoutePlanning() {
+    const { t } = useTranslation();
     const [filter, setFilter] = useState<'all' | 'retailer' | 'farmer'>('all');
     const filtered = filter === 'all' ? stops : stops.filter(s => s.type === filter);
 
     return (
         <div className="screen-root" style={{ position: 'relative', width: '100%', minHeight: '100%', background: 'var(--bg)' }}>
             <TopStrip />
-            
+
             <div style={{ padding: '18px 18px 12px' }}>
-                <h1 style={{ fontFamily: 'Fraunces', fontSize: 24, fontWeight: 500, color: 'var(--ink)', margin: '0 0 4px' }}>Route Plan</h1>
-                <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink-soft)', margin: 0 }}>AI-optimized for priority + distance</p>
+                <h1 style={{ fontFamily: 'Fraunces', fontSize: 24, fontWeight: 500, color: 'var(--ink)', margin: '0 0 4px' }}>{t('route.title')}</h1>
+                <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink-soft)', margin: 0 }}>{t('route.subtitle')}</p>
             </div>
 
             <MapPlaceholder />
@@ -73,7 +75,7 @@ export default function RoutePlanning() {
             <div style={{ padding: '0 18px 12px', display: 'flex', gap: 8 }}>
                 {(['all', 'retailer', 'farmer'] as const).map(f => (
                     <button key={f} onClick={() => setFilter(f)} style={{ padding: '7px 14px', borderRadius: 999, border: filter === f ? '1px solid var(--primary)' : '1px solid var(--border)', background: filter === f ? 'var(--primary)' : 'var(--surface)', color: filter === f ? 'white' : 'var(--ink)', fontFamily: 'Plus Jakarta Sans', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize' as const }}>
-                        {f === 'all' ? 'All' : f === 'retailer' ? '🏪 Retailers' : '🌾 Farmers'}
+                        {f === 'all' ? t('route.filter.all') : f === 'retailer' ? `🏪 ${t('route.filter.retailers')}` : `🌾 ${t('route.filter.farmers')}`}
                     </button>
                 ))}
             </div>
@@ -103,7 +105,7 @@ export default function RoutePlanning() {
 
             <div style={{ padding: '20px 18px' }}>
                 <button style={{ width: '100%', padding: '15px', borderRadius: 16, background: 'var(--primary)', color: 'white', border: 'none', fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, fontWeight: 600, cursor: 'pointer', boxShadow: '0 6px 16px rgba(46,74,58,0.28), inset 0 1px 0 rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    <INav size={18} /> Start Navigation
+                    <INav size={18} /> {t('route.start_nav')}
                 </button>
             </div>
 

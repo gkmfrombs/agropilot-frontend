@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../components/AuthContext'
 import { IUser, IBarChart, ICheck, WheatStalk } from '../components/Shared'
 import { api } from '../services/api'
@@ -10,6 +11,7 @@ const DEMO_CREDS: Record<'rep' | 'manager', { username: string; password: string
 }
 
 export default function Login() {
+  const { t } = useTranslation()
   const { login } = useAuth()
   const [selectedRole, setSelectedRole] = useState<'rep' | 'manager' | null>(null)
   const [loggingIn, setLoggingIn] = useState(false)
@@ -71,7 +73,7 @@ export default function Login() {
             </h1>
           </div>
           <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13.5, color: 'var(--ink-soft)', margin: 0 }}>
-            AI-Powered Field Intelligence · Syngenta
+            {t('login.tagline')}
           </p>
         </div>
 
@@ -87,13 +89,13 @@ export default function Login() {
             fontFamily: 'Fraunces', fontSize: 22, fontWeight: 500,
             color: 'var(--ink)', margin: '0 0 4px', textAlign: 'center',
           }}>
-            Sign in
+            {t('login.title')}
           </h2>
           <p style={{
             fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink-soft)',
             margin: '0 0 28px', textAlign: 'center',
           }}>
-            Select your role to continue
+            {t('login.subtitle')}
           </p>
 
           {/* Role cards */}
@@ -118,10 +120,10 @@ export default function Login() {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>
-                  Field Representative
+                  {t('login.rep_title')}
                 </div>
                 <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: 'var(--ink-soft)', marginTop: 2 }}>
-                  Mobile-first field intelligence
+                  {t('login.rep_desc')}
                 </div>
               </div>
               {selectedRole === 'rep' && (
@@ -155,10 +157,10 @@ export default function Login() {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>
-                  Regional Manager
+                  {t('login.manager_title')}
                 </div>
                 <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: 'var(--ink-soft)', marginTop: 2 }}>
-                  Command centre &amp; analytics
+                  {t('login.manager_desc')}
                 </div>
               </div>
               {selectedRole === 'manager' && (
@@ -211,13 +213,13 @@ export default function Login() {
             {loggingIn ? (
               <>
                 <span style={{ width: 16, height: 16, borderRadius: '50%', border: '2.5px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite', display: 'inline-block', flexShrink: 0 }} />
-                Signing in...
+                {t('login.signing_in')}
               </>
             ) : selectedRole === 'rep'
-              ? 'Continue as Field Rep'
+              ? t('login.continue_rep')
               : selectedRole === 'manager'
-                ? 'Continue as Manager'
-                : 'Select a role to continue'}
+                ? t('login.continue_manager')
+                : t('login.select_role')}
           </button>
         </div>
 

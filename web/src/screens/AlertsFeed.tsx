@@ -1,5 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { PulseDot, Eyebrow, TopStrip, BottomNav, VoiceFAB, IChev, IAlertTriangle, ICloudRain, Icon } from '../components/Shared';
 
 const IBox = (p: any) => <Icon {...p} d={<><path d="M21 8 12 13 3 8" /><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="M12 13v9" /></>} />;
@@ -26,7 +27,7 @@ const alerts = [
     { id: 6, type: 'scan', title: 'Farmer scan spike — Actara 25WG', desc: '12 farmers scanned Actara in Bhatpura. Strong purchase intent signal.', time: '3d ago', severity: 'LOW' },
 ];
 
-const tabs = ['All', 'Urgent', 'Opportunities', 'Campaigns', 'Competitor'];
+const TAB_KEYS = ['alerts.tab.all', 'alerts.tab.urgent', 'alerts.tab.opportunities', 'alerts.tab.campaigns', 'alerts.tab.competitor'];
 const RISK: any = {
     HIGH: { bg: 'rgba(184,92,60,0.10)', fg: '#B85C3C', border: '#B85C3C' },
     MEDIUM: { bg: 'rgba(212,163,71,0.12)', fg: '#8C6420', border: '#D4A347' },
@@ -34,34 +35,35 @@ const RISK: any = {
 };
 
 export default function AlertsFeed() {
-    const [activeTab, setActiveTab] = useState('All');
+    const { t } = useTranslation();
+    const [activeTabIdx, setActiveTabIdx] = useState(0);
 
-    const filtered = activeTab === 'All' ? alerts :
-        activeTab === 'Urgent' ? alerts.filter(a => a.severity === 'HIGH') :
-        activeTab === 'Opportunities' ? alerts.filter(a => ['demand', 'scan'].includes(a.type)) :
-        activeTab === 'Campaigns' ? alerts.filter(a => a.type === 'campaign') :
+    const filtered = activeTabIdx === 0 ? alerts :
+        activeTabIdx === 1 ? alerts.filter(a => a.severity === 'HIGH') :
+        activeTabIdx === 2 ? alerts.filter(a => ['demand', 'scan'].includes(a.type)) :
+        activeTabIdx === 3 ? alerts.filter(a => a.type === 'campaign') :
         alerts.filter(a => a.type === 'competitor');
 
     return (
         <div className="screen-root" style={{ position: 'relative', width: '100%', minHeight: '100%', background: 'var(--bg)' }}>
             <TopStrip />
-            
+
             <div style={{ padding: '18px 18px 0' }}>
-                <h1 style={{ fontFamily: 'Fraunces', fontSize: 24, fontWeight: 500, color: 'var(--ink)', margin: '0 0 4px' }}>Alerts</h1>
-                <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink-soft)', margin: '0 0 16px' }}>Proactive anomaly & opportunity detection</p>
+                <h1 style={{ fontFamily: 'Fraunces', fontSize: 24, fontWeight: 500, color: 'var(--ink)', margin: '0 0 4px' }}>{t('alerts.title')}</h1>
+                <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink-soft)', margin: '0 0 16px' }}>{t('alerts.subtitle')}</p>
             </div>
 
             {/* Filter tabs */}
             <div className="no-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 18px 16px' }}>
-                {tabs.map(tab => (
-                    <button key={tab} onClick={() => setActiveTab(tab)} className="press-scale" style={{
+                {TAB_KEYS.map((key, i) => (
+                    <button key={key} onClick={() => setActiveTabIdx(i)} className="press-scale" style={{
                         flex: 'none', padding: '8px 14px', borderRadius: 999,
-                        background: activeTab === tab ? 'var(--primary)' : 'var(--surface)',
-                        color: activeTab === tab ? 'white' : 'var(--ink)',
-                        border: activeTab === tab ? '1px solid var(--primary)' : '1px solid var(--border)',
+                        background: activeTabIdx === i ? 'var(--primary)' : 'var(--surface)',
+                        color: activeTabIdx === i ? 'white' : 'var(--ink)',
+                        border: activeTabIdx === i ? '1px solid var(--primary)' : '1px solid var(--border)',
                         fontFamily: 'Plus Jakarta Sans', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
                     }}>
-                        {tab}
+                        {t(key)}
                     </button>
                 ))}
             </div>
@@ -73,8 +75,8 @@ export default function AlertsFeed() {
                         <IBell size={30} stroke="var(--border)" />
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--ink)', marginBottom: 6 }}>Nothing here</div>
-                        <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.5 }}>No alerts in this category right now.<br />Check back after your next sync.</div>
+                        <div style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--ink)', marginBottom: 6 }}>{t('alerts.empty_title')}</div>
+                        <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.5 }}>{t('alerts.empty_desc')}</div>
                     </div>
                 </div>
             )}

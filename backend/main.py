@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 
 from config import get_settings
 from data import loader
-from routers import auth, briefing, chat, alerts, farmers, retailers, scan, calculator, manager, route_planning
+from routers import auth, briefing, chat, alerts, farmers, retailers, scan, calculator, manager, route_planning, visits, graph, sync
 
 settings = get_settings()
 
@@ -44,6 +44,9 @@ app.include_router(scan.router)
 app.include_router(calculator.router)
 app.include_router(manager.router)
 app.include_router(route_planning.router)
+app.include_router(visits.router)
+app.include_router(graph.router)
+app.include_router(sync.router)
 
 
 @app.get("/")

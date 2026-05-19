@@ -66,22 +66,39 @@ const STEPS: TourStep[] = [
 
 // ─── Geometry helpers ─────────────────────────────────────────────────────────
 
+const DESKTOP_BREAKPOINT = 768
+const TOP_NAV_H = 64
+const BOTTOM_NAV_H = 62
+
+/** Reads the bounding rect center of the nth `.top-nav-link` element. */
+function getTopNavLinkCenter(index: number): { cx: number; cy: number } | null {
+  const links = document.querySelectorAll<HTMLElement>('.top-nav-link')
+  const el = links[index]
+  if (!el) return null
+  const rect = el.getBoundingClientRect()
+  return { cx: rect.left + rect.width / 2, cy: rect.top + rect.height / 2 }
+}
+
 /**
  * Returns the center {x, y} and radius of the spotlight for each step.
- * Bottom nav is at the very bottom of the screen, 62px tall, items evenly split.
- * We use window dimensions directly since the nav is full-width and fixed.
+ * On mobile (< 768px): targets BottomNav (62px, at bottom, 5 items).
+ * On desktop (>= 768px): queries actual .top-nav-link DOM elements for position.
  */
 function getSpotlight(step: TourStep, winW: number, winH: number) {
   if (step.targetType === 'bottom-nav' && step.navIndex !== undefined) {
-    const navH = 62
-    // 5 items, evenly spaced
+    if (winW >= DESKTOP_BREAKPOINT) {
+      const pos = getTopNavLinkCenter(step.navIndex)
+      if (pos) return { cx: pos.cx, cy: pos.cy, r: 26 }
+      // fallback: center of top nav
+      return { cx: winW / 2, cy: TOP_NAV_H / 2, r: 26 }
+    }
+
+    // Mobile: 5 items evenly spaced along the bottom nav
     const itemW = winW / 5
     const cx = itemW * step.navIndex + itemW / 2
-    const cy = winH - navH / 2
-
-    // The "Chat" icon (index 2) has a special raised bubble — slightly larger spotlight
+    const cy = winH - BOTTOM_NAV_H / 2
+    // Chat (index 2) has a raised bubble — slightly larger spotlight
     const r = step.navIndex === 2 ? 34 : 28
-
     return { cx, cy, r }
   }
   // Center of screen float
@@ -89,39 +106,53 @@ function getSpotlight(step: TourStep, winW: number, winH: number) {
 }
 
 /**
- * Returns CSS top/left positioning for the tooltip card.
+ * Returns CSS positioning for the tooltip card.
+ * Mobile: card floats above the bottom nav.
+ * Desktop: card floats below the top nav link, aligned to it horizontally.
  */
 function getTooltipStyle(
   step: TourStep,
   winW: number,
-  winH: number
+  _winH: number
 ): React.CSSProperties {
+  const cardW = Math.min(300, winW - 32)
+
   if (step.tooltipPosition === 'above-nav' && step.navIndex !== undefined) {
-    const navH = 62
+    if (winW >= DESKTOP_BREAKPOINT) {
+      // Align tooltip below the highlighted top-nav-link
+      const pos = getTopNavLinkCenter(step.navIndex)
+      const cx = pos ? pos.cx : winW / 2
+      let left = cx - cardW / 2
+      left = Math.max(16, Math.min(left, winW - cardW - 16))
+      return {
+        position: 'fixed',
+        top: TOP_NAV_H + 16,
+        left,
+        width: cardW,
+      }
+    }
+
+    // Mobile: float above the bottom nav
     const itemW = winW / 5
     const cx = itemW * step.navIndex + itemW / 2
-
-    // Tooltip card is ~300px wide; clamp so it doesn't overflow edges
-    const cardW = Math.min(300, winW - 32)
     let left = cx - cardW / 2
     left = Math.max(16, Math.min(left, winW - cardW - 16))
-
     return {
       position: 'fixed',
-      bottom: navH + 18,
+      bottom: BOTTOM_NAV_H + 18,
       left,
       width: cardW,
     }
   }
 
   // center-float: vertically centered with offset upward
-  const cardW = Math.min(320, winW - 32)
+  const wideCard = Math.min(320, winW - 32)
   return {
     position: 'fixed',
     top: '50%',
     left: '50%',
     transform: 'translate(-50%, -60%)',
-    width: cardW,
+    width: wideCard,
   }
 }
 

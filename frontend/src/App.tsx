@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './components/AuthContext';
+import { AuthProvider, useAuth } from './components/AuthContext'
+import { LanguageProvider } from './lib/i18n'
 import { IOSDevice } from './components/IOSFrame';
 import Login from './screens/Login';
 import MorningBriefing from './screens/MorningBriefing';
@@ -91,10 +92,12 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </AuthProvider>
-  );
+    <LanguageProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
+    </LanguageProvider>
+  )
 }

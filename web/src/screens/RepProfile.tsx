@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import i18next from 'i18next'
 import {
   IChev,
@@ -352,6 +353,7 @@ export default function RepProfile() {
     return LANGUAGE_OPTIONS.some((o) => o.code === active) ? active : 'en'
   }
 
+  const { t } = useTranslation()
   const [langCode, setLangCode] = useState<LanguageCode>(resolveInitialCode)
   const [dataSaver, setDataSaver] = useState(false)
   const [wifiSync, setWifiSync] = useState(true)
@@ -646,7 +648,7 @@ export default function RepProfile() {
             marginBottom: 12,
           }}
         >
-          <Eyebrow color="var(--ink-soft)">This Week</Eyebrow>
+          <Eyebrow color="var(--ink-soft)">{t('profile.this_week')}</Eyebrow>
           <span
             style={{
               fontFamily: 'Plus Jakarta Sans',
@@ -751,7 +753,7 @@ export default function RepProfile() {
         style={{ animationDelay: '200ms', paddingLeft: 18, paddingRight: 18, marginBottom: 28 }}
       >
         <div style={{ marginBottom: 12 }}>
-          <Eyebrow color="var(--ink-soft)">Field Tools</Eyebrow>
+          <Eyebrow color="var(--ink-soft)">{t('profile.field_tools')}</Eyebrow>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -841,7 +843,7 @@ export default function RepProfile() {
         style={{ animationDelay: '260ms', paddingLeft: 18, paddingRight: 18, marginBottom: 28 }}
       >
         <div style={{ marginBottom: 12 }}>
-          <Eyebrow color="var(--ink-soft)">Preferences</Eyebrow>
+          <Eyebrow color="var(--ink-soft)">{t('profile.preferences')}</Eyebrow>
         </div>
 
         <div
@@ -856,8 +858,8 @@ export default function RepProfile() {
           {/* Language */}
           <SettingRow
             IconEl={<IGlobe size={17} stroke="var(--primary)" />}
-            label="Language"
-            sub="Interface & voice prompts"
+            label={t('profile.language')}
+            sub={t('profile.language_desc')}
             right={
               <select
                 value={langCode}
@@ -894,8 +896,8 @@ export default function RepProfile() {
           {/* Data Saver */}
           <SettingRow
             IconEl={<IDataSaver size={17} stroke="var(--primary)" />}
-            label="Data Saver"
-            sub="Compress images & map tiles"
+            label={t('profile.data_saver')}
+            sub={t('profile.data_saver_desc')}
             right={<Toggle value={dataSaver} onChange={setDataSaver} />}
           />
 
@@ -905,8 +907,8 @@ export default function RepProfile() {
           {/* WiFi Auto-Sync */}
           <SettingRow
             IconEl={<IWifi size={17} stroke="var(--primary)" />}
-            label="Auto-sync on WiFi"
-            sub="Sync automatically when connected to WiFi"
+            label={t('profile.auto_sync')}
+            sub={t('profile.auto_sync_desc')}
             right={<Toggle value={wifiSync} onChange={setWifiSync} />}
           />
 
@@ -917,8 +919,8 @@ export default function RepProfile() {
             IconEl={theme === 'dark'
               ? <ISun size={17} stroke="var(--primary)" />
               : <IMoon size={17} stroke="var(--primary)" />}
-            label="Dark Mode"
-            sub={theme === 'dark' ? 'Dark theme active' : 'Switch to dark theme'}
+            label={t('profile.dark_mode')}
+            sub={theme === 'dark' ? t('profile.dark_mode_active') : t('profile.dark_mode_desc')}
             right={<Toggle value={theme === 'dark'} onChange={() => toggleTheme()} />}
           />
 

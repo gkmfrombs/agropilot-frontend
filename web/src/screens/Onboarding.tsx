@@ -222,7 +222,11 @@ const CARDS: OnboardCard[] = [
 
 // ─── Onboarding screen ────────────────────────────────────────────────────────
 
-export default function Onboarding() {
+interface OnboardingProps {
+  onComplete?: () => void
+}
+
+export default function Onboarding({ onComplete }: OnboardingProps) {
   const navigate = useNavigate()
   const [current, setCurrent] = useState(0)
   const [transitioning, setTransitioning] = useState(false)
@@ -234,8 +238,9 @@ export default function Onboarding() {
 
   const markDoneAndGoToLogin = useCallback(() => {
     localStorage.setItem('agro_onboarded', '1')
-    navigate('/login', { replace: true })
-  }, [navigate])
+    onComplete?.()
+    navigate('/', { replace: true })
+  }, [navigate, onComplete])
 
   const goTo = useCallback((index: number, dir: 'forward' | 'back' = 'forward') => {
     if (transitioning) return
