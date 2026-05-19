@@ -209,8 +209,9 @@
     // Load from localStorage (fall back to demo data)
     useEffect(() => {
       try {
-        const saved = JSON.parse(localStorage.getItem('agropilot_visit_log') || '[]');
-        setEntries(saved.length > 0 ? saved : DEMO_ENTRIES);
+        const raw = localStorage.getItem('agropilot_visit_log');
+        // Only use demo data when key is completely absent (never logged before)
+        setEntries(raw !== null ? JSON.parse(raw) : DEMO_ENTRIES);
       } catch (_) {
         setEntries(DEMO_ENTRIES);
       }

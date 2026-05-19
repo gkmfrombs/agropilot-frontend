@@ -1,7 +1,39 @@
 // AI Consultant chat screen — 390px mobile
-// Dynamic chat + in-page reasoning overlay + localStorage persistence
+// Dynamic chat + in-page reasoning overlay + localStorage persistence + Groq AI
 
-const { useState, useEffect, useRef } = React;
+const { useState, useEffect, useRef, useMemo } = React;
+
+// ===================================================================
+// Groq config — replace with real key or set via window.GROQ_API_KEY
+// ===================================================================
+const GROQ_API_KEY = window.GROQ_API_KEY || '';
+const GROQ_MODEL   = 'llama-3.3-70b-versatile';
+const GROQ_SYSTEM  = `You are AgroPilot AI, an expert agricultural field advisor for Syngenta field reps in India.
+You help field reps advise farmers on crop disease, fungicide selection, dosage, and timing.
+Always respond in valid JSON with this exact shape:
+{"text":"<one sentence diagnosis or opener>","sections":[{"heading":"<title>","bullets":["<item>","<item>"]}]}
+Use **bold** inside strings for emphasis. Be concise. Max 3 sections, 3 bullets each.
+Context: Hardoi district, UP. Current farmer: Ramesh Singh. Crop: Wheat HD-2967. Stage: Flowering.`;
+
+async function callGroq(userMessage, history) {
+  if (!GROQ_API_KEY) return null;
+  const messages = [
+    ...history.slice(-6).map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text || '' })),
+    { role: 'user', content: userMessage },
+  ];
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: GROQ_MODEL, messages: [{ role: 'system', content: GROQ_SYSTEM }, ...messages], max_tokens: 600, temperature: 0.7, response_format: { type: 'json_object' } }),
+    });
+    const data = await res.json();
+    const parsed = JSON.parse(data.choices[0].message.content);
+    return parsed;
+  } catch (_) {
+    return null;
+  }
+}
 
 // ===================================================================
 // Icons
@@ -284,12 +316,12 @@ function ContextChips() {
 function useTypewriter(text, delayPerChar = 30, start = 0) {
   const [n, setN] = useState(0);
   useEffect(() => {
+    let iv;
     const t0 = setTimeout(() => {
       let i = 0;
-      const iv = setInterval(() => { i += 1; setN(i); if (i >= text.length) clearInterval(iv); }, delayPerChar);
-      return () => clearInterval(iv);
+      iv = setInterval(() => { i += 1; setN(i); if (i >= text.length) clearInterval(iv); }, delayPerChar);
     }, start);
-    return () => clearTimeout(t0);
+    return () => { clearTimeout(t0); clearInterval(iv); };
   }, [text, delayPerChar, start]);
   return [text.slice(0, n), n >= text.length];
 }
@@ -659,36 +691,30 @@ function ChatScreen() {
     if (bottomRef.current) bottomRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const sendMessage = (text) => {
+  const sendMessage = async (text) => {
     const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-    const userId = 'u' + Date.now();
     const thinkingId = 'think' + Date.now();
 
-    // Add user message + thinking bubble
     setMessages(prev => [
       ...prev,
-      { id: userId, role: 'user', text, time: now, voice: false },
+      { id: 'u' + Date.now(), role: 'user', text, time: now, voice: false },
       { id: thinkingId, role: 'ai', thinking: true },
     ]);
 
-    // Rotate follow-ups
-    setFollowUps(prev => {
-      const remaining = FOLLOW_UP_POOL.filter(f => f !== text);
-      return remaining.slice(0, 3);
-    });
+    setFollowUps(FOLLOW_UP_POOL.filter(f => f !== text).slice(0, 3));
 
-    // Simulate response after delay
-    setTimeout(() => {
-      const reply = simulateAIReply(text);
-      setMessages(prev => [
-        ...prev.filter(m => m.id !== thinkingId),
-        { id: 'a' + Date.now(), role: 'ai', ...reply },
-      ]);
-    }, 1600);
+    // Try Groq first, fall back to local simulation
+    const groqReply = await callGroq(text, messages);
+    const reply = groqReply || simulateAIReply(text);
+
+    setMessages(prev => [
+      ...prev.filter(m => m.id !== thinkingId),
+      { id: 'a' + Date.now(), role: 'ai', ...reply },
+    ]);
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%', minHeight: '100%', background: 'var(--bg)', paddingTop: 48, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', background: 'var(--bg)', paddingTop: 48, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Paper grain */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.5, zIndex: 1, backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.09 0 0 0 0 0.07 0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")` }}/>
 

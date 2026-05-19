@@ -208,6 +208,10 @@
       }).addTo(map);
 
       mapRef.current = map;
+      return () => {
+        map.remove();
+        mapRef.current = null;
+      };
     }, []);
 
     // Update markers + route whenever stops change
@@ -229,7 +233,7 @@
 
       // Draw markers
       stops.forEach((stop, i) => {
-        const color = RISK_COLOR[stop.risk];
+        const color = RISK_COLOR[stop.risk] ?? '#6B6A5F';
         const html = `
           <div style="
             width:32px;height:32px;border-radius:50%;
@@ -256,9 +260,9 @@
 
     // Shrink map when sheet expands
     useEffect(() => {
-      if (mapRef.current) {
-        setTimeout(() => mapRef.current.invalidateSize(), 420);
-      }
+      if (!mapRef.current) return;
+      const id = setTimeout(() => mapRef.current?.invalidateSize(), 450);
+      return () => clearTimeout(id);
     }, [sheetExpanded]);
 
     return (
@@ -303,9 +307,11 @@
       setStops(arr);
     };
 
-    const visibleStops = filter === 'All'    ? stops
-                       : filter === 'Urgent' ? stops.filter(s => s.risk === 'HIGH')
-                       : stops.filter(s => s.risk !== 'HIGH');
+    const visibleStops = React.useMemo(() =>
+      filter === 'All'    ? stops
+    : filter === 'Urgent' ? stops.filter(s => s.risk === 'HIGH')
+    : stops.filter(s => s.risk !== 'HIGH')
+    , [stops, filter]);
 
     return (
       <div style={{ position: 'relative', width: '100%', height: '100%', background: '#d4dbb4', overflow: 'hidden' }}>

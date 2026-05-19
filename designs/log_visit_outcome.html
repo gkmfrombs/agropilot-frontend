@@ -260,16 +260,23 @@
         notes,
       };
       try {
-        const prev = JSON.parse(localStorage.getItem('agropilot_visit_log') || '[]');
+        const raw = localStorage.getItem('agropilot_visit_log');
+        const prev = raw ? JSON.parse(raw) : [];
         prev.unshift(entry);
         localStorage.setItem('agropilot_visit_log', JSON.stringify(prev.slice(0, 100)));
-      } catch (_) {}
+      } catch (_) {
+        localStorage.setItem('agropilot_visit_log', JSON.stringify([entry]));
+      }
+
+      // Validate competitor fields before save
+      if (sawCompetitor && !compBrand.trim()) {
+        setToast({ type: 'error', msg: 'Please enter the competitor brand name.' });
+        setTimeout(() => setToast(null), 3000);
+        return;
+      }
 
       setToast({ type: 'success', msg: '✓ Visit logged (Offline sync queued)' });
-      setTimeout(() => {
-        setToast(null);
-        window.location.href = 'visit_history.html';
-      }, 2000);
+      setTimeout(() => { window.location.href = 'visit_history.html'; }, 2000);
     };
 
     const selectedProducts = products.filter(p => p.selected);
