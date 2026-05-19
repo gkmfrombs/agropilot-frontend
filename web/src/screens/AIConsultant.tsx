@@ -228,7 +228,7 @@ const iconRoundBtn: React.CSSProperties = {
 }
 
 function AIMessageCard({ message }: { message: Message }) {
-  const headline = message.bullets ? 'Apply Syngenta Tilt 25EC within 48 hours' : message.text
+  const headline = message.text
   const [typed, done] = useTypewriter(message.bullets ? headline : '', 28, 200)
   const [bulletStep, setBulletStep] = useState(0)
   const [feedback, setFeedback] = useState<'up' | 'dn' | null>(null)
