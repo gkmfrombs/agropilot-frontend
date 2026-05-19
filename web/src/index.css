@@ -36,8 +36,9 @@ html,
 body {
   margin: 0;
   padding: 0;
+  height: 100%;
+  overflow-x: hidden;
   background: radial-gradient(at 28% 14%, #586b3f 0%, #3f5230 50%, #2c3a22 100%);
-  min-height: 100vh;
 }
 
 [data-theme="dark"] body,
@@ -52,7 +53,7 @@ body {
 }
 
 #root {
-  min-height: 100vh;
+  height: 100%;
 }
 
 button,
@@ -336,11 +337,19 @@ select {
 
 /* rep-layout: full-page wrapper replacing rep-shell/rep-card */
 .rep-layout {
-  min-height: 100vh;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   background: var(--bg);
+  overflow: hidden;
 }
 .rep-content {
-  min-height: 100vh;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 
 /* ---- TOP NAV (desktop only) ---- */
@@ -410,6 +419,9 @@ select {
     padding-left: 32px;
     padding-right: 32px;
     box-sizing: border-box;
+    /* desktop: scroll inside content area, not the full page */
+    height: 100%;
+    overflow-y: auto;
   }
 
   /* Hide mobile-only elements */
@@ -464,10 +476,20 @@ select {
 }
 
 @media (max-width: 767px) {
-  /* rep-layout on mobile: full screen, keep original dark bg */
-  html, body { background: var(--bg); }
-  .rep-layout { background: var(--bg); }
+  html, body, #root {
+    height: 100%;
+    /* Use dvh so URL bar collapse/expand doesn't cause layout jump */
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--bg);
+  }
 
-  /* ensure screen content doesn't go under fixed bottom nav */
+  .rep-layout {
+    height: 100vh;
+    height: 100dvh;
+    background: var(--bg);
+  }
+
+  /* screen content clears fixed bottom nav */
   .rep-content { padding-bottom: 80px; }
 }
