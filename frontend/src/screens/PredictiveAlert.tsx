@@ -16,9 +16,9 @@ function AlertHero() {
             <div style={{ position: 'absolute', inset: 0, mixBlendMode: 'multiply', background: 'rgba(46,74,58,0.4)' }} />
             
             <div style={{ position: 'relative', zIndex: 2, padding: '20px 18px', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 280 }}>
-                <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px 8px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px) saturate(180%)', WebkitBackdropFilter: 'blur(12px) saturate(180%)', color: 'white', textDecoration: 'none', width: 'fit-content', border: '0.5px solid rgba(255,255,255,0.15)' }}>
+                <Link to="/alerts" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px 8px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px) saturate(180%)', WebkitBackdropFilter: 'blur(12px) saturate(180%)', color: 'white', textDecoration: 'none', width: 'fit-content', border: '0.5px solid rgba(255,255,255,0.15)' }}>
                     <IChev size={16} style={{ transform: 'rotate(180deg)' }} />
-                    <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600 }}>Back to Briefing</span>
+                    <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600 }}>Back to Alerts</span>
                 </Link>
                 <div style={{ marginTop: 'auto' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>

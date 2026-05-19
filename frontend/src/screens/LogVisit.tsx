@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from '../../node_modules/react-i18next';
 import { IChev, IMic, ICheck, TopStrip, BottomNav } from '../components/Shared';
 
 const outcomes = ['Sale Made', 'Order Placed', 'No Purchase', 'Follow-up Required'];
 const products = ['Topik 15 WP', 'Score 250 EC', 'Actara 25 WG', 'Kavach 75 WP', 'Tilt 25 EC', 'Nativo 75 WG', 'Amistar Top'];
 
 export default function LogVisit() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [selectedOutcome, setSelectedOutcome] = useState<string | null>(null);
     const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -23,19 +25,19 @@ export default function LogVisit() {
                 <div className="fade-up" style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, boxShadow: '0 10px 30px rgba(46,74,58,0.3)' }}>
                     <ICheck size={36} stroke="white" />
                 </div>
-                <h2 style={{ fontFamily: 'Fraunces', fontSize: 24, fontWeight: 500, color: 'var(--ink)', margin: '0 0 8px' }}>Visit Logged!</h2>
-                <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: 'var(--ink-soft)', margin: '0 0 24px' }}>Saved offline · will sync when connected.</p>
+                <h2 style={{ fontFamily: 'Fraunces', fontSize: 24, fontWeight: 500, color: 'var(--ink)', margin: '0 0 8px' }}>{t('log.success')}</h2>
+                <p style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: 'var(--ink-soft)', margin: '0 0 24px' }}>{t('log.saved_offline')}</p>
                 <Link to="/route" style={{ padding: '14px 28px', borderRadius: 16, background: 'var(--primary)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, fontWeight: 600, textDecoration: 'none', boxShadow: '0 6px 16px rgba(46,74,58,0.28)' }}>
-                    Return to Route
+                    {t('log.return_route')}
                 </Link>
             </div>
         );
     }
 
     return (
-        <div style={{ position: 'relative', width: '100%', minHeight: '100%', background: 'var(--bg)', paddingTop: 48 }}>
+        <div className="screen-root" style={{ position: 'relative', width: '100%', minHeight: '100%', background: 'var(--bg)' }}>
             <TopStrip />
-            
+
             <div style={{ padding: '14px 18px' }}>
                 <Link to="/visit" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 12, color: 'var(--ink-soft)', textDecoration: 'none' }}>
                     <IChev size={16} style={{ transform: 'rotate(180deg)' }} />
@@ -76,11 +78,9 @@ export default function LogVisit() {
                             color: selectedProducts.includes(p) ? 'white' : 'var(--ink)',
                             border: selectedProducts.includes(p) ? '1px solid var(--primary)' : '1px solid var(--border)',
                             fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                            transition: 'all 200ms ease', display: 'inline-flex', alignItems: 'center', gap: 5,
+                            transition: 'all 200ms ease',
                         }}>
-                            {selectedProducts.includes(p) && (
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M20 6 9 17l-5-5" /></svg>
-                            )}{p}
+                            {selectedProducts.includes(p) && '✓ '}{p}
                         </button>
                     ))}
                 </div>

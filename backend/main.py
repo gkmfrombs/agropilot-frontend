@@ -1,64 +1,33 @@
-import sys
-import os
-sys.path.insert(0, os.path.dirname(__file__))
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
 
-from config import get_settings
-from data import loader
-from routers import auth, briefing, chat, alerts, farmers, retailers, scan, calculator, manager, route_planning, visits, graph, sync
+# Initialize config to load environment and logging first
+import config 
 
-settings = get_settings()
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    loader.load_all()
-    yield
-
+from router.chat import router as chat_router
+from router.auth import router as auth_router
+from router.graph import router as graph_router
 
 app = FastAPI(
-    title="AgroPilot API",
-    description="AI-Guided Field Force Intelligence — Syngenta IITM Hackathon 2026",
-    version="1.0.0",
-    lifespan=lifespan,
+    title="Agri-Edge LangGraph Co-Pilot",
+    description="Intelligent routing API for Syngenta GraphRAG and Agronomy Assistance",
+    version="1.0.0"
 )
 
+# CORS Configuration for React Frontend Integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(auth.router)
-app.include_router(briefing.router)
-app.include_router(chat.router)
-app.include_router(alerts.router)
-app.include_router(farmers.router)
-app.include_router(retailers.router)
-app.include_router(scan.router)
-app.include_router(calculator.router)
-app.include_router(manager.router)
-app.include_router(route_planning.router)
-app.include_router(visits.router)
-app.include_router(graph.router)
-app.include_router(sync.router)
-
-
-@app.get("/")
-def health():
-    return {
-        "status": "ok",
-        "app": "AgroPilot",
-        "version": "1.0.0",
-        "docs": "/docs",
-    }
-
+# Include the routers
+app.include_router(chat_router)
+app.include_router(auth_router)
+app.include_router(graph_router)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=settings.port, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

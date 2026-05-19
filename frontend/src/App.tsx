@@ -1,73 +1,60 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './components/AuthContext'
-import { LanguageProvider } from './lib/i18n'
-import { IOSDevice } from './components/IOSFrame';
-import Login from './screens/Login';
-import MorningBriefing from './screens/MorningBriefing';
-import FarmerProfile from './screens/FarmerProfile';
-import PredictiveAlert from './screens/PredictiveAlert';
-import AIConsultant from './screens/AIConsultant';
-import RoutePlanning from './screens/RoutePlanning';
-import VisitCopilot from './screens/VisitCopilot';
-import LogVisit from './screens/LogVisit';
-import AlertsFeed from './screens/AlertsFeed';
-import CropScanner from './screens/CropScanner';
-import YieldCalculator from './screens/YieldCalculator';
-import RetailerProfile from './screens/RetailerProfile';
-import RepProfile from './screens/RepProfile';
-import ManagerLayout from './screens/manager/ManagerLayout';
-import TerritoryHeatmap from './screens/manager/TerritoryHeatmap';
-import KPIDashboard from './screens/manager/KPIDashboard';
-import RepPerformance from './screens/manager/RepPerformance';
-import AlertManagement from './screens/manager/AlertManagement';
-import CampaignPerformance from './screens/manager/CampaignPerformance';
-
-import { SideNav } from './components/Shared';
+import { ToastProvider } from './components/ToastContext'
+import { ThemeProvider } from './components/ThemeContext'
+import { useState } from 'react'
+import Login from './screens/Login'
+import Onboarding from './screens/Onboarding'
+import MorningBriefing from './screens/MorningBriefing'
+import FarmerProfile from './screens/FarmerProfile'
+import PredictiveAlert from './screens/PredictiveAlert'
+import AIConsultant from './screens/AIConsultant'
+import RoutePlanning from './screens/RoutePlanning'
+import VisitCopilot from './screens/VisitCopilot'
+import LogVisit from './screens/LogVisit'
+import AlertsFeed from './screens/AlertsFeed'
+import CropScanner from './screens/CropScanner'
+import YieldCalculator from './screens/YieldCalculator'
+import RetailerProfile from './screens/RetailerProfile'
+import RepProfile from './screens/RepProfile'
+import { TopNav } from './components/Shared'
+import TourOverlay from './components/TourOverlay'
+import ManagerLayout from './screens/manager/ManagerLayout'
+import TerritoryHeatmap from './screens/manager/TerritoryHeatmap'
+import KPIDashboard from './screens/manager/KPIDashboard'
+import RepPerformance from './screens/manager/RepPerformance'
+import AlertManagement from './screens/manager/AlertManagement'
+import CampaignPerformance from './screens/manager/CampaignPerformance'
+import ReasoningGraph from './screens/ReasoningGraph'
+import SyncCenter from './screens/SyncCenter'
 
 function RepApp() {
   return (
-    <div className="app-container">
-      <IOSDevice width={390} height={844}>
-        {/* Desktop sidebar — hidden on mobile via CSS */}
-        <SideNavWrapper />
-        {/* Main content area */}
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<MorningBriefing />} />
-            <Route path="/route" element={<RoutePlanning />} />
-            <Route path="/chat" element={<AIConsultant />} />
-            <Route path="/alerts" element={<AlertsFeed />} />
-            <Route path="/me" element={<RepProfile />} />
-            <Route path="/alert" element={<PredictiveAlert />} />
-            <Route path="/farmer/:id" element={<FarmerProfile />} />
-            <Route path="/retailer/:id" element={<RetailerProfile />} />
-            <Route path="/visit" element={<VisitCopilot />} />
-            <Route path="/log-visit" element={<LogVisit />} />
-            <Route path="/scanner" element={<CropScanner />} />
-            <Route path="/calculator" element={<YieldCalculator />} />
-            <Route path="/profile" element={<FarmerProfile />} />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </main>
-      </IOSDevice>
+    <div className="rep-layout">
+      <TopNav />
+      <div className="rep-content">
+        <Routes>
+          <Route path="/" element={<MorningBriefing />} />
+          <Route path="/route" element={<RoutePlanning />} />
+          <Route path="/chat" element={<AIConsultant />} />
+          <Route path="/alerts" element={<AlertsFeed />} />
+          <Route path="/me" element={<RepProfile />} />
+          <Route path="/alert" element={<PredictiveAlert />} />
+          <Route path="/farmer/:id" element={<FarmerProfile />} />
+          <Route path="/retailer/:id" element={<RetailerProfile />} />
+          <Route path="/visit" element={<VisitCopilot />} />
+          <Route path="/log-visit" element={<LogVisit />} />
+          <Route path="/scanner" element={<CropScanner />} />
+          <Route path="/calculator" element={<YieldCalculator />} />
+          <Route path="/profile" element={<FarmerProfile />} />
+          <Route path="/graph" element={<ReasoningGraph />} />
+          <Route path="/sync" element={<SyncCenter />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </div>
     </div>
-  );
+  )
 }
-
-function SideNavWrapper() {
-  const [isDesk, setIsDesk] = React.useState(() =>
-    typeof window !== 'undefined' && window.innerWidth >= 769
-  );
-  React.useEffect(() => {
-    const handler = () => setIsDesk(window.innerWidth >= 769);
-    window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
-  }, []);
-  if (!isDesk) return null;
-  return <SideNav />;
-}
-
 
 function ManagerApp() {
   return (
@@ -81,45 +68,83 @@ function ManagerApp() {
       </Route>
       <Route path="*" element={<Navigate to="/manager" />} />
     </Routes>
-  );
+  )
+}
+
+/**
+ * Wraps the authenticated rep app and conditionally renders the spotlight tour
+ * on first login. Tour state is tracked in localStorage ('agro_tour_done').
+ */
+function RepAppWithTour() {
+  // In dev: always show tour so the full first-login flow is testable
+  const [showTour, setShowTour] = useState(() =>
+    import.meta.env.DEV ? true : !localStorage.getItem('agro_tour_done')
+  )
+
+  const handleTourDone = () => {
+    setShowTour(false)
+  }
+
+  return (
+    <>
+      <RepApp />
+      {showTour && <TourOverlay onDone={handleTourDone} />}
+    </>
+  )
 }
 
 function AppRoutes() {
-  const { role } = useAuth();
+  const { role } = useAuth()
+  // In dev: always start from onboarding so the full flow is testable on every refresh
+  const [onboarded, setOnboarded] = useState(() =>
+    import.meta.env.DEV ? false : !!localStorage.getItem('agro_onboarded')
+  )
 
+  // ── Unauthenticated ────────────────────────────────────────────────────────
   if (!role) {
     return (
       <Routes>
-        <Route path="*" element={<Login />} />
+        <Route
+          path="/onboarding"
+          element={<Onboarding onComplete={() => setOnboarded(true)} />}
+        />
+        <Route
+          path="*"
+          element={onboarded ? <Login /> : <Navigate to="/onboarding" replace />}
+        />
       </Routes>
-    );
+    )
   }
 
+  // ── Manager ────────────────────────────────────────────────────────────────
   if (role === 'manager') {
     return (
       <Routes>
         <Route path="/manager/*" element={<ManagerApp />} />
         <Route path="*" element={<Navigate to="/manager" />} />
       </Routes>
-    );
+    )
   }
 
+  // ── Field Rep ──────────────────────────────────────────────────────────────
   return (
     <Routes>
       <Route path="/manager/*" element={<Navigate to="/" />} />
-      <Route path="/*" element={<RepApp />} />
+      <Route path="/*" element={<RepAppWithTour />} />
     </Routes>
-  );
+  )
 }
 
 export default function App() {
   return (
-    <LanguageProvider>
+    <ThemeProvider>
       <AuthProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </ToastProvider>
       </AuthProvider>
-    </LanguageProvider>
+    </ThemeProvider>
   )
 }

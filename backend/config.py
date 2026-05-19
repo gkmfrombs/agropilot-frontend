@@ -1,22 +1,42 @@
-from pydantic_settings import BaseSettings
-from functools import lru_cache
+import os
+import logging
+import dotenv
+from langchain_groq import ChatGroq
+from langchain_neo4j import Neo4jGraph
 
+# Configure professional logging
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+logger = logging.getLogger(__name__)
 
-class Settings(BaseSettings):
-    groq_api_key: str = ""
-    chat_model: str = "llama-3.3-70b-versatile"
-    vision_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
-    jwt_secret: str = "dev-secret-change-in-prod"
-    jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60
-    frontend_url: str = "http://localhost:5173"
-    csv_dir: str = "../data/"
-    port: int = 8000
+# Load environment variables
+dotenv.load_dotenv()
 
-    class Config:
-        env_file = ".env"
+# Strict Environment Validation
+REQUIRED_ENV_VARS = ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD", "GROQ_API_KEY"]
+for var in REQUIRED_ENV_VARS:
+    if not os.getenv(var):
+        logger.error(f"CRITICAL: Missing environment variable {var}. The application will fail.")
 
+# ==========================================
+# AI & DATABASE INITIALIZATION
+# ==========================================
 
-@lru_cache
-def get_settings() -> Settings:
-    return Settings()
+graph = None
+llm = None
+
+try:
+    logger.info("Initializing Neo4j Graph Connection...")
+    graph = Neo4jGraph(
+        url=os.getenv("NEO4J_URI"), 
+        username=os.getenv("NEO4J_USERNAME"), 
+        password=os.getenv("NEO4J_PASSWORD")
+    )
+
+    logger.info("Initializing Groq Llama-3.3-70b Agent...")
+    llm = ChatGroq(
+        groq_api_key=os.getenv("GROQ_API_KEY"), 
+        model_name="llama-3.3-70b-versatile",
+        temperature=0 # Strict logic for database queries
+    )
+except Exception as e:
+    logger.error(f"Failed to initialize core services: {str(e)}")

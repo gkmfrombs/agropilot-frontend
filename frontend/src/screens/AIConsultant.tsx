@@ -1,251 +1,609 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { IChev, IMic, TopStrip, ISend, IClose, Eyebrow, PulseDot } from '../components/Shared';
-import { useTranslation } from '../lib/i18n';
+import React, { useState, useRef, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import { useTranslation } from '../../node_modules/react-i18next'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { IChev, IMic, ISend, IClose, Icon } from '../components/Shared'
 
-function ScarecrowAvatar({ size = 36 }: { size?: number }) {
-    return (
-        <svg width={size} height={size} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-            {/* Hat brim */}
-            <ellipse cx="18" cy="11" rx="10" ry="2.5" fill="#5C3D1E" />
-            {/* Hat crown */}
-            <rect x="12" y="3" width="12" height="9" rx="2" fill="#7A5230" />
-            {/* Hat band */}
-            <rect x="12" y="9.5" width="12" height="2" fill="#C9974A" />
-            {/* Straw from hat */}
-            <line x1="10" y1="10" x2="7" y2="7" stroke="#D4A347" strokeWidth="1.2" strokeLinecap="round" />
-            <line x1="26" y1="10" x2="29" y2="7" stroke="#D4A347" strokeWidth="1.2" strokeLinecap="round" />
-            <line x1="18" y1="3" x2="18" y2="1" stroke="#D4A347" strokeWidth="1.2" strokeLinecap="round" />
-            {/* Face */}
-            <circle cx="18" cy="18" r="7" fill="#F5C88A" />
-            {/* Eyes — simple X stitched style */}
-            <line x1="15" y1="16.5" x2="16.5" y2="18" stroke="#5C3D1E" strokeWidth="1.2" strokeLinecap="round" />
-            <line x1="16.5" y1="16.5" x2="15" y2="18" stroke="#5C3D1E" strokeWidth="1.2" strokeLinecap="round" />
-            <line x1="19.5" y1="16.5" x2="21" y2="18" stroke="#5C3D1E" strokeWidth="1.2" strokeLinecap="round" />
-            <line x1="21" y1="16.5" x2="19.5" y2="18" stroke="#5C3D1E" strokeWidth="1.2" strokeLinecap="round" />
-            {/* Smile — stitched curve */}
-            <path d="M15.5 20 Q18 22.5 20.5 20" stroke="#5C3D1E" strokeWidth="1.2" strokeLinecap="round" fill="none" />
-            {/* Cheek patches */}
-            <circle cx="14" cy="19.5" r="1.8" fill="rgba(201,151,74,0.35)" />
-            <circle cx="22" cy="19.5" r="1.8" fill="rgba(201,151,74,0.35)" />
-            {/* Body / shirt */}
-            <rect x="13" y="25" width="10" height="8" rx="2" fill="#2E4A3A" />
-            {/* Shirt patch */}
-            <rect x="15" y="27" width="3" height="2.5" rx="0.5" fill="#4a6a55" />
-            {/* Straw from sleeves */}
-            <line x1="13" y1="27" x2="9" y2="25" stroke="#D4A347" strokeWidth="1.2" strokeLinecap="round" />
-            <line x1="13" y1="28" x2="9" y2="27" stroke="#D4A347" strokeWidth="1.2" strokeLinecap="round" />
-            <line x1="23" y1="27" x2="27" y2="25" stroke="#D4A347" strokeWidth="1.2" strokeLinecap="round" />
-            <line x1="23" y1="28" x2="27" y2="27" stroke="#D4A347" strokeWidth="1.2" strokeLinecap="round" />
-        </svg>
-    )
-}
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
+const chatCss = `
+  .chat-screen {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+  }
+  @media (max-width: 767px) {
+    .chat-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      height: 100dvh;
+    }
+  }
+  /* ── Markdown body ─────────────────────────────────────────── */
+  .md-body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.65;
+  }
+  .md-body > *:first-child { margin-top: 0 !important; }
+  .md-body > *:last-child  { margin-bottom: 0 !important; }
+
+  /* Paragraphs */
+  .md-body p { margin: 0 0 10px; }
+
+  /* Headings — Fraunces serif to match design system */
+  .md-body h1, .md-body h2, .md-body h3, .md-body h4 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin: 16px 0 6px;
+  }
+  .md-body h1 { font-size: 18px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+  .md-body h2 { font-size: 16px; }
+  .md-body h3 { font-size: 14.5px; color: var(--primary); }
+  .md-body h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+
+  /* Lists — custom arrow bullets matching design system */
+  .md-body ul, .md-body ol { margin: 8px 0 10px; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .md-body ol { counter-reset: md-ol; }
+  .md-body li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+  .md-body ul li::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--primary);
+    opacity: 0.7;
+    flex-shrink: 0;
+    margin-top: 7px;
+  }
+  .md-body ol li::before {
+    counter-increment: md-ol;
+    content: counter(md-ol);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px; height: 18px;
+    border-radius: 6px;
+    background: rgba(46,74,58,0.10);
+    color: var(--primary);
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  /* nested lists */
+  .md-body li > ul, .md-body li > ol { margin: 4px 0 0; }
+
+  /* Inline formatting */
+  .md-body strong { font-weight: 700; color: var(--ink); }
+  .md-body em     { font-style: italic; color: var(--ink-soft); }
+
+  /* Inline code */
+  .md-body code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    background: rgba(46,74,58,0.09);
+    color: var(--primary);
+    padding: 1px 6px;
+    border-radius: 5px;
+    border: 1px solid rgba(46,74,58,0.12);
+  }
+  /* Code block */
+  .md-body pre {
+    background: rgba(20,18,12,0.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    overflow-x: auto;
+    margin: 10px 0;
+  }
+  .md-body pre code { background: none; border: none; padding: 0; font-size: 12.5px; color: var(--ink); }
+
+  /* Blockquote — left-border accent */
+  .md-body blockquote {
+    margin: 10px 0;
+    padding: 8px 14px;
+    border-left: 3px solid var(--primary);
+    background: rgba(46,74,58,0.04);
+    border-radius: 0 8px 8px 0;
+    color: var(--ink-soft);
+    font-style: italic;
+    font-size: 13.5px;
+  }
+
+  /* Horizontal rule */
+  .md-body hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+  /* Tables */
+  .md-body table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 10px 0; border-radius: 8px; overflow: hidden; }
+  .md-body thead { background: var(--surface-warm); }
+  .md-body th { font-weight: 700; padding: 7px 10px; border-bottom: 2px solid var(--border); text-align: left; color: var(--ink); }
+  .md-body td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  .md-body tr:last-child td { border-bottom: none; }
+`
+
+// Local icons not in Shared
+const ICloud = (p: any) => <Icon {...p} d={<path d="M17.5 19a4.5 4.5 0 1 0-1.5-8.75A6 6 0 1 0 6 16" />} />
+const IWheat = (p: any) => <Icon {...p} d={<><path d="M2 22 16 8" /><path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L5 19l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z" /><path d="M7.47 8.53 9 7l1.53 1.53a3.5 3.5 0 0 1 0 4.94L9 15l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z" /><path d="M11.47 4.53 13 3l1.53 1.53a3.5 3.5 0 0 1 0 4.94L13 11l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z" /></>} />
+const IDb = (p: any) => <Icon {...p} d={<><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5v14a9 3 0 0 0 18 0V5" /><path d="M3 12a9 3 0 0 0 18 0" /></>} />
+const IBox = (p: any) => <Icon {...p} d={<><path d="M21 8 12 13 3 8" /><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="M12 13v9" /></>} />
+const ICheckCircle = (p: any) => <Icon {...p} d={<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" /></>} />
+const IPin = (p: any) => <Icon {...p} d={<><path d="M20 10c0 7-8 13-8 13s-8-6-8-13a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></>} />
+const IThumbUp = (p: any) => <Icon {...p} d={<path d="M7 10v12M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H7a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L15 2h0a3 3 0 0 1 0 3.88Z" />} />
+const IThumbDn = (p: any) => <Icon {...p} d={<path d="M17 14V2M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H17a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L9 22h0a3 3 0 0 1 0-3.88Z" />} />
+const IArrowR = (p: any) => <Icon {...p} d={<><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></>} />
 
 interface Message {
-    text: string;
-    isUser: boolean;
-    hasGraph?: boolean;
+  text: string
+  isUser: boolean
+  isVoice?: boolean
+  hasGraph?: boolean
+  showSources?: boolean
+  confidence?: number
+  bullets?: string[]
+  stockInfo?: string
+  followUps?: string[]
 }
 
 const initialMessages: Message[] = [
-    { text: "Good morning Arjun! I'm ready to help with your field visits today. What do you need?", isUser: false },
-];
+  { text: "Good morning Arjun! I've already analysed your territory. 3 farms need attention before the rain hits Thursday.", isUser: false },
+  { text: 'What should I prioritize before the rain hits today?', isUser: true },
+  {
+    text: 'Apply Syngenta Tilt 25EC within 48 hours',
+    isUser: false,
+    bullets: [
+      'HD-2967 wheat at BBCH 65 (flowering) — peak fungal vulnerability window',
+      '48mm rainfall + 89% humidity over 31h matched Septoria infection conditions (Hardoi IMD)',
+      '0.87 cosine match to May 2023 outbreak — 14 plots, 12–22% yield loss in Bhatpura-Mallawan cluster',
+      '14 units Tilt 25EC at Kisan Store, Sandila Rd — 11 min drive, confirmed 2h ago',
+    ],
+    confidence: 94,
+    showSources: true,
+    followUps: ['What dosage?', 'Check stock', 'Show route'],
+  },
+]
 
-function ChatMessage({ message, isUser, showGraph, delay, whyLabel }: any) {
-    return (
-        <div className="slide-in-l" style={{ animationDelay: `${delay}ms`, display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start', marginBottom: 16 }}>
-            {!isUser && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--surface-warm)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                        <ScarecrowAvatar size={26} />
-                    </div>
-                    <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 600, color: 'var(--ink-soft)' }}>AgroPilot</span>
-                </div>
-            )}
-            <div style={{ maxWidth: '85%', padding: '12px 16px', borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px', background: isUser ? 'var(--primary)' : 'var(--surface)', color: isUser ? 'white' : 'var(--ink)', border: isUser ? 'none' : '1px solid var(--border)', fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, lineHeight: 1.45, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                {message}
-                {!isUser && showGraph && (
-                    <button onClick={showGraph} style={{ marginTop: 12, padding: '8px 12px', width: '100%', borderRadius: 12, background: 'var(--surface-warm)', border: '1px solid var(--border)', color: 'var(--primary)', fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                        {whyLabel} <IChev size={14} />
-                    </button>
-                )}
-            </div>
-        </div>
-    );
+// Mini waveform for voice messages
+function MiniWave() {
+  const bars = [0.4, 0.7, 0.55, 0.85, 0.5, 0.7, 0.4, 0.6]
+  return (
+    <svg width="40" height="12" viewBox="0 0 40 12" fill="none">
+      {bars.map((h, i) => (
+        <rect key={i} x={i * 5 + 1} y={(12 - h * 12) / 2} width="2.2" height={h * 12} rx="1" fill="rgba(255,255,255,0.7)" />
+      ))}
+    </svg>
+  )
 }
 
-function ReasoningGraphModal({ onClose, t }: any) {
-    const signals = [
-        { label: 'Ramesh\n(Farmer)', x: 20, y: 18, color: 'var(--ink)' },
-        { label: 'HD-2967\n(Wheat)', x: 78, y: 15, color: 'var(--ink)' },
-        { label: '48mm Rain', x: 12, y: 58, color: 'var(--danger)' },
-        { label: '89%\nHumidity', x: 85, y: 55, color: 'var(--warning)' },
-        { label: '2023\nOutbreak', x: 20, y: 82, color: 'var(--ink-soft)' },
-        { label: 'Stock 5km', x: 78, y: 82, color: 'var(--primary)' },
-    ];
+/**
+ * Typewriter hook — kept only for the structured `bullets` headline animation
+ * on initialMessages. Stream messages receive real tokens so they don't use this.
+ */
+function useTypewriter(text: string, speed = 28, startDelay = 0) {
+  const [n, setN] = useState(0)
+  useEffect(() => {
+    setN(0)
+    const t0 = setTimeout(() => {
+      let i = 0
+      const iv = setInterval(() => {
+        i += 1
+        setN(i)
+        if (i >= text.length) clearInterval(iv)
+      }, speed)
+      return () => clearInterval(iv)
+    }, startDelay)
+    return () => clearTimeout(t0)
+  }, [text])
+  return [text.slice(0, n), n >= text.length] as const
+}
 
-    const steps = [
-        'Detected wheat at flowering stage from farmer profile',
-        'Connected rainfall and humidity to fungal risk model',
-        'Matched current pattern against 2023 outbreak in same panchayat',
-        'Filtered Syngenta products for early-stage blight efficacy',
-        'Identified in-stock location within 5km radius',
-    ];
+const SOURCES = [
+  { I: ICloud, label: 'Weather' },
+  { I: IWheat, label: 'Crop' },
+  { I: IDb, label: 'Disease DB' },
+  { I: IBox, label: 'Product' },
+]
 
-    return (
-        <div className="fade-up" style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'var(--bg)', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
-            <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 2 }}>
-                <div>
-                    <h2 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, margin: 0, color: 'var(--ink)' }}>{t('reasoningGraph')}</h2>
-                    <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: 'var(--ink-soft)' }}>6 signals · 1 outcome</span>
-                </div>
-                <button onClick={onClose} style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: 'var(--ink)' }}><IClose size={24} /></button>
-            </div>
-            
-            {/* Graph */}
-            <div style={{ position: 'relative', height: 320, margin: '16px 18px', background: 'var(--surface)', borderRadius: 20, border: '1px solid var(--border)', overflow: 'hidden' }}>
-                <svg style={{ position: 'absolute', width: '100%', height: '100%' }}>
-                    {signals.map((s, i) => (
-                        <line key={i} x1={`${s.x}%`} y1={`${s.y}%`} x2="50%" y2="48%" stroke="var(--primary-soft)" strokeWidth="1.5" strokeDasharray="4 4" />
-                    ))}
-                </svg>
-                {signals.map((s, i) => (
-                    <div key={i} style={{ position: 'absolute', left: `${s.x}%`, top: `${s.y}%`, transform: 'translate(-50%, -50%)', padding: '6px 10px', background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border)', fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 600, color: s.color, textAlign: 'center', whiteSpace: 'pre-line', lineHeight: 1.3, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>{s.label}</div>
-                ))}
-                <div style={{ position: 'absolute', top: '48%', left: '50%', transform: 'translate(-50%, -50%)', width: 80, height: 80, borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 700, boxShadow: '0 0 0 6px rgba(46,74,58,0.12), 0 4px 16px rgba(46,74,58,0.3)', zIndex: 10, lineHeight: 1.3 }}>
-                    Tilt<br/>25EC
-                </div>
-            </div>
+const iconRoundBtn: React.CSSProperties = {
+  width: 30, height: 30, borderRadius: '50%',
+  background: 'transparent', border: '1px solid var(--border)',
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  cursor: 'pointer',
+}
 
-            {/* Reasoning Trail */}
-            <div style={{ padding: '0 18px 20px' }}>
-                <Eyebrow>{t('reasoningTrail')}</Eyebrow>
-                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {steps.map((step, i) => (
-                        <div key={i} style={{ display: 'flex', gap: 10, padding: '10px 14px', background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                            <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 700, flex: 'none' }}>{i+1}</span>
-                            <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink)', lineHeight: 1.4 }}>{step}</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
+function AIMessageCard({ message }: { message: Message }) {
+  const headline = message.bullets ? 'Apply Syngenta Tilt 25EC within 48 hours' : message.text
+  const [typed, done] = useTypewriter(message.bullets ? headline : '', 28, 200)
+  const [bulletStep, setBulletStep] = useState(0)
+  const [feedback, setFeedback] = useState<'up' | 'dn' | null>(null)
 
-            <div style={{ padding: '0 18px 24px', display: 'flex', gap: 10 }}>
-                <button onClick={onClose} style={{ flex: 1, padding: '15px', borderRadius: 16, background: 'var(--primary)', color: 'white', border: 'none', fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, fontWeight: 600, cursor: 'pointer', boxShadow: '0 6px 16px rgba(46,74,58,0.28)' }}>
-                    {t('useThisAnswer')}
-                </button>
-            </div>
+  useEffect(() => {
+    if (!done || !message.bullets) return
+    let i = 0
+    const iv = setInterval(() => {
+      i += 1
+      setBulletStep(i)
+      if (i >= (message.bullets?.length ?? 0)) clearInterval(iv)
+    }, 220)
+    return () => clearInterval(iv)
+  }, [done])
+
+  // text === '' means the placeholder was just added; first token clears loading state
+  const isLoading = message.text === '' && !message.bullets
+
+  return (
+    <div className="fade-up" style={{ maxWidth: '92%', alignSelf: 'flex-start', background: 'var(--surface)', borderRadius: '20px 20px 20px 8px', boxShadow: '0 1px 2px rgba(20,18,12,0.04), 0 14px 36px rgba(20,18,12,0.10)', padding: '16px 18px 14px', position: 'relative', overflow: 'hidden' }}>
+
+      {/* Label */}
+      <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+        {message.bullets ? 'Recommendation' : 'AgroPilot'}
+      </div>
+
+      {/* Headline or markdown stream or loading dots */}
+      {message.bullets ? (
+        <h3 style={{ marginTop: 8, marginBottom: 0, fontFamily: 'Fraunces', fontWeight: 500, fontSize: 17, lineHeight: 1.22, letterSpacing: '-0.01em', color: 'var(--ink)', minHeight: 42 }}>
+          {typed}
+          {!done && <span className="caret" style={{ display: 'inline-block', width: 2, height: '1em', background: 'var(--primary)', marginLeft: 2, verticalAlign: 'text-bottom', animation: 'caretBlink 0.9s steps(1) infinite' }} />}
+        </h3>
+      ) : isLoading ? (
+        <div style={{ marginTop: 10, display: 'flex', gap: 4 }}>
+          {[0, 1, 2].map(i => (
+            <span key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--border)', animation: `dotPulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />
+          ))}
         </div>
-    );
+      ) : (
+        <>
+          <div style={{ height: 1, background: 'var(--border)', margin: '10px -2px 12px' }} />
+          <div className="md-body">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
+          </div>
+        </>
+      )}
+
+      {/* Divider + bullets for structured responses */}
+      {message.bullets && (
+        <>
+          <div style={{ height: 1, background: 'var(--border)', margin: '14px -2px 12px' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {message.bullets.map((b, i) => (
+              <div key={i} className={i < bulletStep ? 'fade-up' : ''} style={{ display: 'flex', alignItems: 'flex-start', gap: 9, opacity: i < bulletStep ? 1 : 0, transition: 'opacity 200ms ease', fontFamily: 'Plus Jakarta Sans', fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.42 }}>
+                <span style={{ width: 18, height: 18, borderRadius: 6, background: 'rgba(46,74,58,0.10)', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none', marginTop: 1 }}>
+                  <IArrowR size={11} stroke="#2E4A3A" />
+                </span>
+                <span>{b}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Source chips */}
+      {message.showSources && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Sources</div>
+          <div className="no-scrollbar" style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+            {SOURCES.map((s, i) => (
+              <span key={s.label} className="slide-in-l" style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 999, background: 'var(--surface-warm)', border: '1px solid var(--border)', fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 600, color: 'var(--ink-soft)', animationDelay: `${700 + i * 50}ms` }}>
+                <s.I size={11} stroke="#6B6A5F" />
+                {s.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Stock card */}
+      {message.stockInfo && (
+        <div style={{ marginTop: 14, background: 'var(--primary-soft)', borderRadius: 14, padding: '11px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(46,74,58,0.14)', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+            <ICheckCircle size={15} stroke="#2E4A3A" />
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.25 }}>{message.stockInfo}</div>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginTop: 3, fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 700, color: 'var(--primary)' }}>
+              <IPin size={10} stroke="#2E4A3A" /> View location →
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Footer — only on non-loading messages */}
+      {!isLoading && (
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {message.confidence ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 999, background: 'rgba(201,151,74,0.16)', color: '#8C6420', fontFamily: 'Plus Jakarta Sans', fontWeight: 700, fontSize: 11 }}>
+              <span style={{ width: 5, height: 5, borderRadius: 99, background: 'var(--accent)' }} />
+              {message.confidence}% confidence
+            </span>
+          ) : (
+            <Link to="/graph" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: 700, color: 'var(--primary)', textDecoration: 'none' }}>
+              Show reasoning →
+            </Link>
+          )}
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button onClick={() => setFeedback('up')} style={{ ...iconRoundBtn, background: feedback === 'up' ? 'rgba(46,74,58,0.1)' : 'transparent' }}>
+              <IThumbUp size={14} stroke={feedback === 'up' ? 'var(--primary)' : '#6B6A5F'} />
+            </button>
+            <button onClick={() => setFeedback('dn')} style={{ ...iconRoundBtn, background: feedback === 'dn' ? 'rgba(184,92,60,0.1)' : 'transparent' }}>
+              <IThumbDn size={14} stroke={feedback === 'dn' ? 'var(--danger)' : '#6B6A5F'} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {message.confidence && !isLoading && (
+        <Link to="/graph" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 12, fontFamily: 'Plus Jakarta Sans', fontSize: 12.5, fontWeight: 700, color: 'var(--primary)', textDecoration: 'none' }}>
+          Show reasoning graph →
+        </Link>
+      )}
+    </div>
+  )
+}
+
+function ChatMessage({ message, delay, onSend }: { message: Message; delay: number; onSend?: (t: string) => void }) {
+  return (
+    <div className="slide-in-l" style={{ animationDelay: `${delay}ms`, display: 'flex', flexDirection: 'column', alignItems: message.isUser ? 'flex-end' : 'flex-start', marginBottom: 16 }}>
+      {!message.isUser && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+          <div style={{
+            width: 30, height: 30, borderRadius: 10, flexShrink: 0,
+            border: '1px solid rgba(46,74,58,0.14)',
+            overflow: 'hidden',
+            background: 'var(--primary-soft)',
+          }}>
+            <img src="/scarecrow.jpg" alt="AgroPilot" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
+          <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 600, color: 'var(--ink-soft)' }}>AgroPilot</span>
+        </div>
+      )}
+      {message.isUser ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+          <div style={{ maxWidth: '80%', background: 'var(--primary)', color: 'white', padding: '13px 16px', borderRadius: '20px 20px 8px 20px', fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, lineHeight: 1.45, boxShadow: '0 1px 2px rgba(20,18,12,0.04), 0 8px 22px rgba(46,74,58,0.18)' }}>
+            {message.text}
+          </div>
+          {message.isVoice && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 4px', fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: 'var(--ink-soft)' }}>
+              <MiniWave /> voice · 8s
+            </div>
+          )}
+        </div>
+      ) : (
+        <AIMessageCard message={message} />
+      )}
+      {/* Follow-up pills */}
+      {!message.isUser && message.followUps && (
+        <div style={{ marginTop: 10, paddingLeft: 30 }}>
+          <div className="no-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
+            {message.followUps.map((t, i) => (
+              <button key={t} className="slide-in-l" onClick={() => onSend?.(t)} style={{ flex: 'none', padding: '8px 13px', borderRadius: 999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'Plus Jakarta Sans', fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap', animationDelay: `${i * 60}ms`, boxShadow: '0 1px 2px rgba(20,18,12,0.04)' }}>
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function AIConsultant() {
-    const { t } = useTranslation();
-    const [showGraph, setShowGraph] = useState(false);
-    const [messages, setMessages] = useState<Message[]>(initialMessages);
-    const [input, setInput] = useState('');
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const location = useLocation();
-    const scanHandled = useRef(false);
+  const { t } = useTranslation()
+  const [messages, setMessages] = useState<Message[]>(initialMessages)
+  const [input, setInput] = useState('')
+  const [recording, setRecording] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const historyRef = useRef<{ role: string; content: string }[]>([])
 
-    useEffect(() => {
-        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-    }, [messages]);
+  // Holds the AbortController for the active stream so we can cancel on unmount
+  const abortRef = useRef<AbortController | null>(null)
 
-    // Handle scan context from CropScanner navigation
-    useEffect(() => {
-        const state = location.state as any;
-        if (state?.scanContext && !scanHandled.current) {
-            scanHandled.current = true;
-            const ctx = state.scanContext;
-            setMessages(prev => [...prev, { text: ctx, isUser: true }]);
-            setTimeout(() => {
-                setMessages(prev => [...prev, {
-                    text: "Based on the scan results, here is my detailed recommendation. The product I've suggested is the best match for this disease at the current severity level. Apply it as directed — timing is critical for maximum efficacy. Would you like to know about dosage adjustments, alternative products, or nearby stock availability?",
-                    isUser: false,
-                    hasGraph: true,
-                }]);
-            }, 1000);
-        }
-    }, [location.state]);
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+  }, [messages])
 
+  // Cancel any in-flight stream when the component unmounts
+  useEffect(() => {
+    return () => { abortRef.current?.abort() }
+  }, [])
 
-    const sendMessage = () => {
-        if (!input.trim()) return;
-        const userMsg = input.trim();
-        setInput('');
-        setMessages(prev => [...prev, { text: userMsg, isUser: true }]);
-        
-        // Simulate AI response
-        setTimeout(() => {
-            let response = '';
-            let hasGraph = false;
-            if (userMsg.toLowerCase().includes('ramesh') || userMsg.toLowerCase().includes('pitch')) {
-                response = "Based on Ramesh's profile and current weather, pitch Tilt 25EC. His wheat (HD-2967) is at flowering stage, and 48mm rainfall has created high blight risk. Stock is available 5km away at Kisan Store.";
-                hasGraph = true;
-            } else if (userMsg.toLowerCase().includes('stock') || userMsg.toLowerCase().includes('inventory')) {
-                response = "Topik 15WP is out of stock at 3 retailers in Sandila tehsil. Score 250EC is running low at Kisan Agri Store (4 units). Actara and Kavach levels are healthy across your territory.";
-            } else if (userMsg.toLowerCase().includes('dose') || userMsg.toLowerCase().includes('dosage')) {
-                response = "For Tilt 25EC on wheat at heading/flowering stage: Apply 200ml per acre mixed with 200L water. Best applied in early morning or late afternoon. Avoid application if rain is expected within 6 hours.";
-            } else {
-                response = "I can help with product recommendations, inventory status, crop advice, and territory intelligence. Try asking about a specific farmer, product, or what to pitch today!";
+  const sendMessage = async (text?: string) => {
+    const userMsg = (text ?? input).trim()
+    if (!userMsg || loading) return
+
+    setInput('')
+    setLoading(true)
+
+    // Append user bubble + empty AI placeholder (empty text triggers loading dots)
+    setMessages(prev => [...prev, { text: userMsg, isUser: true }, { text: '', isUser: false }])
+    historyRef.current = [...historyRef.current, { role: 'user', content: userMsg }]
+
+    const repId = localStorage.getItem('agro_rep_id') || 'REP_0001'
+    const token = localStorage.getItem('agro_token')
+
+    const controller = new AbortController()
+    abortRef.current = controller
+
+    try {
+      const res = await fetch(`${BASE}/api/chat/stream`, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ messages: historyRef.current, rep_id: repId }),
+      })
+
+      if (!res.ok) throw new Error(`${res.status}`)
+      if (!res.body) throw new Error('No response body')
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+
+      // Buffer for partial SSE lines that arrive across chunk boundaries
+      let lineBuffer = ''
+      let accumulated = ''
+      let firstToken = true
+
+      outer: while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        lineBuffer += decoder.decode(value, { stream: true })
+
+        // SSE lines are delimited by \n\n — split and process each complete event
+        const parts = lineBuffer.split('\n\n')
+        // The last element may be an incomplete line; keep it in the buffer
+        lineBuffer = parts.pop() ?? ''
+
+        for (const part of parts) {
+          // Each SSE event may contain one or more "data: ..." lines
+          for (const line of part.split('\n')) {
+            if (!line.startsWith('data:')) continue
+            // Slice off "data:" and exactly one optional space — preserves
+            // token-leading spaces that the LLM emits (e.g. " checked")
+            const payload = line.replace(/^data: ?/, '')
+
+            if (payload === '[DONE]') break outer
+
+            accumulated += payload
+
+            if (firstToken) {
+              // First real token: turn off loading state so dots disappear
+              setLoading(false)
+              firstToken = false
             }
-            setMessages(prev => [...prev, { text: response, isUser: false, hasGraph }]);
-        }, 800);
-    };
 
-    return (
-        <div style={{ height: '100%', background: 'var(--bg)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            {/* Header */}
-            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--surface)', zIndex: 10, flexShrink: 0 }}>
-                <Link to="/" style={{ color: 'var(--ink)', textDecoration: 'none' }}><IChev size={20} style={{ transform: 'rotate(180deg)' }} /></Link>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--surface-warm)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                    <ScarecrowAvatar size={36} />
-                </div>
-                <div>
-                    <h2 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, margin: 0, color: 'var(--ink)' }}>AgroPilot</h2>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
-                        <PulseDot color="var(--primary)" size={5} />
-                        <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: 'var(--primary)', fontWeight: 600 }}>GraphRAG Connected</span>
-                    </div>
-                </div>
-            </div>
+            // Capture snapshot for the closure so each setState call is pure
+            const snapshot = accumulated
+            setMessages(prev => {
+              const next = [...prev]
+              next[next.length - 1] = { text: snapshot, isUser: false }
+              return next
+            })
+          }
+        }
+      }
 
-            {/* Messages */}
-            <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '18px 18px 8px', display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
-                {messages.map((msg, i) => (
-                    <ChatMessage
-                        key={i}
-                        message={msg.text}
-                        isUser={msg.isUser}
-                        delay={i * 100}
-                        showGraph={msg.hasGraph ? () => setShowGraph(true) : undefined}
-                        whyLabel={t('whyRecommendation')}
-                    />
-                ))}
-            </div>
+      // Stream finished — attach follow-ups and persist to history
+      historyRef.current = [...historyRef.current, { role: 'assistant', content: accumulated }]
+      setMessages(prev => {
+        const next = [...prev]
+        next[next.length - 1] = {
+          text: accumulated || 'Got it.',
+          isUser: false,
+          followUps: ['What dosage?', 'Check stock', 'Show route'],
+        }
+        return next
+      })
+    } catch (err) {
+      // AbortError means the component unmounted — silently ignore
+      if (err instanceof DOMException && err.name === 'AbortError') return
 
-            {/* Input */}
-            <div style={{ padding: '14px 18px env(safe-area-inset-bottom, 20px)', background: 'var(--surface)', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg)', padding: '8px 12px', borderRadius: 24, border: '1px solid var(--border)' }}>
-                    <button style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
-                        <IMic size={20} />
-                    </button>
-                    <input
-                        type="text"
-                        value={input}
-                        onChange={e => setInput(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                        placeholder="Ask AgroPilot..."
-                        style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: 'var(--ink)' }}
-                    />
-                    <button onClick={sendMessage} style={{ width: 32, height: 32, borderRadius: '50%', background: input.trim() ? 'var(--primary)' : 'var(--border)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: input.trim() ? 'pointer' : 'default', transition: 'background 200ms' }}>
-                        <ISend size={16} />
-                    </button>
-                </div>
-            </div>
+      setMessages(prev => {
+        const next = [...prev]
+        next[next.length - 1] = {
+          text: "I'm having trouble connecting right now. Please try again in a moment.",
+          isUser: false,
+        }
+        return next
+      })
+    } finally {
+      setLoading(false)
+      abortRef.current = null
+    }
+  }
 
-            {showGraph && <ReasoningGraphModal onClose={() => setShowGraph(false)} t={t} />}
+  // Context chips for current visit
+  const contextChips = ['Wheat', 'Block 4', 'Flowering', 'Cached ✓']
+
+  return (
+    <div className="chat-screen">
+      <style>{chatCss}</style>
+
+      {/* Header */}
+      <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '40px 1fr 40px', alignItems: 'center', background: 'rgba(245,241,232,0.85)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', position: 'sticky', top: 0, zIndex: 10 }}>
+        <Link to="/" style={{ width: 36, height: 36, borderRadius: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--ink)', textDecoration: 'none' }}>
+          <IChev size={18} style={{ transform: 'rotate(180deg)' }} />
+        </Link>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'Fraunces', fontWeight: 500, fontSize: 16, color: 'var(--ink)' }}>
+            <span style={{ width: 7, height: 7, borderRadius: 99, background: '#7B9C6A', boxShadow: '0 0 0 2.5px rgba(123,156,106,0.18)', display: 'inline-block' }} />
+            AgroPilot
+          </div>
+          <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: 'var(--ink-soft)', marginTop: 2 }}>{t('chat.rag_label', { count: 6 })}</div>
         </div>
-    );
+        <Link to="/graph" style={{ width: 36, height: 36, borderRadius: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary-soft)', border: '1px solid var(--border)', color: 'var(--primary)', textDecoration: 'none', fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, flexDirection: 'column', gap: 1 }}>
+          <IArrowR size={13} stroke="var(--primary)" style={{ transform: 'rotate(-45deg)' }} />
+        </Link>
+      </div>
+
+      {/* Context chips */}
+      <div style={{ padding: '10px 18px', background: 'var(--surface-warm)', borderBottom: '1px solid var(--border)' }}>
+        <div className="no-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
+          {contextChips.map(c => (
+            <span key={c} style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 999, background: 'var(--bg)', border: '1px solid var(--border)', fontFamily: 'Plus Jakarta Sans', fontSize: 11.5, fontWeight: 600, color: 'var(--ink-soft)' }}>
+              {c === 'Cached ✓' && <span style={{ width: 5, height: 5, borderRadius: 99, background: 'var(--accent)' }} />}
+              {c}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '18px 18px 8px', display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
+        {messages.map((msg, i) => (
+          <ChatMessage key={i} message={msg} delay={i * 80} onSend={sendMessage} />
+        ))}
+      </div>
+
+      {/* Input */}
+      <div style={{ padding: '8px 18px 20px', background: 'var(--bg)', borderTop: '1px solid rgba(229,220,201,0.7)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 999, padding: '6px 6px 6px 18px', boxShadow: '0 1px 2px rgba(20,18,12,0.04), 0 8px 22px rgba(20,18,12,0.06)' }}>
+          <input
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && sendMessage()}
+            placeholder={t('chat.placeholder')}
+            autoFocus
+            style={{ flex: 1, minWidth: 0, height: 36, background: 'transparent', border: 'none', outline: 'none', fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: 'var(--ink)' }}
+          />
+          <button
+            onClick={() => setRecording(r => !r)}
+            style={{ width: 44, height: 44, borderRadius: '50%', background: recording ? 'var(--danger)' : 'radial-gradient(circle at 32% 28%, #4a6a55 0%, #2E4A3A 60%, #243a2e 100%)', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'white', flex: 'none', boxShadow: '0 6px 14px rgba(46,74,58,0.30), inset 0 1px 0 rgba(255,255,255,0.18)' }}
+            aria-label={recording ? 'Stop recording' : 'Voice input'}
+          >
+            <IMic size={18} stroke="#fff" />
+          </button>
+          <button
+            onClick={() => sendMessage()}
+            disabled={loading}
+            style={{ width: 44, height: 44, borderRadius: '50%', background: (input.trim() && !loading) ? 'var(--primary)' : 'var(--surface-warm)', border: '1px solid var(--border)', color: (input.trim() && !loading) ? 'white' : 'var(--ink-soft)', cursor: (input.trim() && !loading) ? 'pointer' : 'default', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none', transition: 'background 200ms' }}
+          >
+            {loading
+              ? <span style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
+              : <ISend size={17} />
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }

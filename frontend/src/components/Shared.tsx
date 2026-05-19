@@ -1,5 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from '../../node_modules/react-i18next'
+import { useTheme } from './ThemeContext';
 
 // ===================================================================
 // Icons (Lucide-style: stroke 1.5, round caps/joins, fill none, viewBox 0 0 24 24)
@@ -35,175 +37,164 @@ export const ICalendar = (p: IconProps) => <Icon {...p} d={<><rect x="3" y="4" w
 export const IShare = (p: IconProps) => <Icon {...p} d={<><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></>} />;
 export const ITarget = (p: IconProps) => <Icon {...p} d={<><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></>} />;
 export const IBarChart = (p: IconProps) => <Icon {...p} d={<><line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" /></>} />;
+export const IMoon = (p: IconProps) => <Icon {...p} d={<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />} />;
+export const ISun = (p: IconProps) => <Icon {...p} d={<><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></>} />;
+export const IScarecrow = (p: IconProps) => <Icon {...p} d={<>
+    <line x1="7" y1="8.5" x2="17" y2="8.5" />
+    <path d="M9 8.5V6c0-.9.7-1.5 3-1.5s3 .6 3 1.5v2.5" />
+    <circle cx="12" cy="11" r="2" />
+    <line x1="12" y1="13" x2="12" y2="21" />
+    <line x1="4.5" y1="16" x2="19.5" y2="16" />
+    <path d="M4.5 16l-1.5 3M19.5 16l1.5 3" />
+    <path d="M10 17c0 1.8 4 1.8 4 0" />
+</>} />;
 
-// ── Desktop sidebar breakpoint (matches CSS) ────────────────────────
-const DESK = '(min-width: 769px)';
+// ===================================================================
+// Common UI Patterns
+// ===================================================================
+export const Skeleton = ({ width = '100%', height = 16, radius = 8, style }: {
+    width?: string | number; height?: number | string; radius?: number; style?: React.CSSProperties
+}) => (
+    <span className="skeleton" style={{ display: 'block', width, height, borderRadius: radius, ...style }} />
+)
 
-// Simple hook to detect desktop
-function useDesktop() {
-    const [isDesk, setIsDesk] = React.useState(() =>
-        typeof window !== 'undefined' && window.matchMedia(DESK).matches
-    );
-    React.useEffect(() => {
-        const mq = window.matchMedia(DESK);
-        const handler = (e: MediaQueryListEvent) => setIsDesk(e.matches);
-        mq.addEventListener('change', handler);
-        return () => mq.removeEventListener('change', handler);
-    }, []);
-    return isDesk;
-}
+export const PulseDot = ({ color = '#B85C3C', size = 6 }) => (
+    <span style={{ position: 'relative', display: 'inline-flex', width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+        <span className="pulse-ring" style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: color }} />
+        <span style={{ position: 'relative', width: size, height: size, borderRadius: '50%', background: color }} />
+    </span>
+);
 
-const NAV_ITEMS = [
-    { id: 'home',    label: 'Home',    I: IHome,       to: '/' },
-    { id: 'route',   label: 'Route',   I: IMap,        to: '/route' },
-    { id: 'chat',    label: 'AI Chat', I: IChat,       to: '/chat' },
-    { id: 'scanner', label: 'Scanner', I: ICamera,     to: '/scanner' },
-    { id: 'alerts',  label: 'Alerts',  I: IBell,       to: '/alerts' },
-    { id: 'me',      label: 'Profile', I: IUser,       to: '/me' },
-];
+export const Eyebrow = ({ children, color = 'var(--ink-soft)' }: any) => (
+    <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, color, letterSpacing: '0.18em', textTransform: 'uppercase' as const }}>{children}</span>
+);
 
-/** Desktop left sidebar navigation */
-export function SideNav() {
-    const location = useLocation();
-    return (
-        <nav style={{
-            position: 'fixed', top: 0, left: 0, bottom: 0, width: 220, zIndex: 50,
-            background: 'var(--surface)',
-            borderRight: '1px solid var(--border)',
-            display: 'flex', flexDirection: 'column',
-            padding: '0 0 24px',
-        }}>
-            {/* Logo / Brand */}
-            <div style={{ padding: '24px 20px 20px', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 12, background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <IHome size={18} stroke="white" />
-                    </div>
-                    <div>
-                        <div style={{ fontFamily: 'Fraunces', fontWeight: 500, fontSize: 15, color: 'var(--ink)' }}>AgroPilot</div>
-                        <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, color: 'var(--ink-soft)', fontWeight: 600 }}>by Syngenta</div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Status */}
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 11px 5px 10px', borderRadius: 999, background: 'var(--primary-soft)', color: 'var(--primary)', fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 600 }}>
-                    <PulseDot color="#2E4A3A" size={6} /> Offline · 3 queued
-                </div>
-            </div>
-
-            {/* Nav links */}
-            <div style={{ flex: 1, padding: '12px 12px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {NAV_ITEMS.map(({ id, label, I, to }) => {
-                    const active = location.pathname === to || (to === '/' && location.pathname === '/');
-                    return (
-                        <Link key={id} to={to} style={{
-                            display: 'flex', alignItems: 'center', gap: 12,
-                            padding: '10px 12px', borderRadius: 12,
-                            background: active ? 'rgba(46,74,58,0.10)' : 'transparent',
-                            color: active ? 'var(--primary)' : 'var(--ink-soft)',
-                            fontFamily: 'Plus Jakarta Sans', fontSize: 13.5, fontWeight: 600,
-                            textDecoration: 'none', transition: 'background 150ms, color 150ms',
-                        }}>
-                            <I size={18} stroke={active ? '#2E4A3A' : '#6B6A5F'} />
-                            {label}
-                            {active && <span style={{ marginLeft: 'auto', width: 4, height: 4, borderRadius: 99, background: 'var(--primary)' }} />}
-                        </Link>
-                    );
-                })}
-            </div>
-
-            {/* Alerts bell at bottom */}
-            <div style={{ padding: '0 12px' }}>
-                <Link to="/alerts" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, color: 'var(--ink-soft)', fontFamily: 'Plus Jakarta Sans', fontSize: 13.5, fontWeight: 600, textDecoration: 'none', position: 'relative' }}>
-                    <IBell size={18} stroke="#6B6A5F" />
-                    Alerts
-                    <span style={{ marginLeft: 'auto', minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999, background: 'var(--accent)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontWeight: 700, fontSize: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>2</span>
-                </Link>
-            </div>
-        </nav>
-    );
-}
+export const WheatStalk = ({ size = 64, color = '#1A1A17', opacity = 0.14, style }: any) => (
+    <svg width={size} height={size * 1.4} viewBox="0 0 64 88" fill="none" style={{ opacity, ...style }}>
+        <line x1="32" y1="6" x2="32" y2="84" stroke={color} strokeWidth="1.1" strokeLinecap="round" />
+        {[0, 1, 2, 3, 4, 5, 6, 7].map(i => (
+            <g key={i} transform={`translate(32, ${12 + i * 8.5})`}>
+                <path d="M0 0 Q -7 -3 -11 -10" stroke={color} strokeWidth="1.1" strokeLinecap="round" fill="none" />
+                <path d="M0 0 Q  7 -3  11 -10" stroke={color} strokeWidth="1.1" strokeLinecap="round" fill="none" />
+                <ellipse cx="-8" cy="-6" rx="3.4" ry="1.6" stroke={color} strokeWidth="1" fill="none" transform="rotate(-30 -8 -6)" />
+                <ellipse cx="8" cy="-6" rx="3.4" ry="1.6" stroke={color} strokeWidth="1" fill="none" transform="rotate(30 8 -6)" />
+            </g>
+        ))}
+    </svg>
+);
 
 export function TopStrip() {
-    const isDesk = useDesktop();
-    if (isDesk) {
-        // On desktop: show a top bar within the main content area
-        return (
-            <div style={{
-                position: 'sticky', top: 0, zIndex: 30,
-                background: 'rgba(245,241,232,0.92)',
-                backdropFilter: 'blur(14px) saturate(160%)', WebkitBackdropFilter: 'blur(14px) saturate(160%)',
-                borderBottom: '1px solid rgba(229,220,201,0.7)',
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 32px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 11px 5px 10px', borderRadius: 999, background: 'var(--primary-soft)', color: 'var(--primary)', fontFamily: 'Plus Jakarta Sans', fontSize: 11.5, fontWeight: 600 }}>
-                            <PulseDot color="#2E4A3A" size={6} /> Offline
-                        </div>
-                        <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: 'var(--ink-soft)' }}>3 actions queued</span>
-                    </div>
-                    <Link to="/alerts" style={{ position: 'relative', width: 40, height: 40, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)', textDecoration: 'none' }}>
-                        <IBell size={20} />
-                        <span style={{ position: 'absolute', top: 6, right: 6, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 999, background: 'var(--accent)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontWeight: 700, fontSize: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 2px var(--surface)' }}>2</span>
-                    </Link>
-                </div>
-            </div>
-        );
-    }
-    // Mobile: original compact strip
     return (
-        <div style={{
-            position: 'sticky', top: 0, zIndex: 30, background: 'rgba(245,241,232,0.78)',
+        <div className="top-strip-wrap" style={{
+            position: 'sticky', top: 0, zIndex: 30,
+            background: 'color-mix(in srgb, var(--bg) 88%, transparent)',
             backdropFilter: 'blur(14px) saturate(160%)', WebkitBackdropFilter: 'blur(14px) saturate(160%)',
-            borderBottom: '1px solid rgba(229,220,201,0.7)',
+            borderBottom: '1px solid var(--border)',
         }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 18px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 11px 5px 10px', borderRadius: 999, background: 'var(--primary-soft)', color: 'var(--primary)', fontFamily: 'Plus Jakarta Sans', fontSize: 11.5, fontWeight: 600 }}>
-                        <PulseDot color="#2E4A3A" size={6} /> Offline
+                        <PulseDot color="var(--primary)" size={6} /> Field Mode
                     </div>
-                    <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: 'var(--ink-soft)' }}>3 actions queued</span>
+                    <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: 'var(--ink-soft)' }}>4 actions queued</span>
                 </div>
-                <Link to="/alerts" style={{ position: 'relative', width: 36, height: 36, borderRadius: 12, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)', textDecoration: 'none' }}>
-                    <IBell size={20} />
-                    <span style={{ position: 'absolute', top: 4, right: 4, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 999, background: 'var(--accent)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontWeight: 700, fontSize: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 2.5px rgba(245,241,232,0.95)' }}>2</span>
-                </Link>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <ThemeToggle size={32} />
+                    <Link to="/alerts" style={{ position: 'relative', width: 36, height: 36, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', padding: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', textDecoration: 'none' }}>
+                        <IBell size={16} />
+                        <span style={{ position: 'absolute', top: 4, right: 4, minWidth: 8, height: 8, borderRadius: 999, background: 'var(--danger)', boxShadow: '0 0 0 2px var(--surface)' }} />
+                    </Link>
+                </div>
             </div>
         </div>
     );
 }
 
-export function BottomNav() {
-    const location = useLocation();
-    const isDesk = useDesktop();
-    // On desktop, BottomNav is hidden — SideNav is used instead
-    if (isDesk) return null;
+export function ThemeToggle({ size = 34 }: { size?: number }) {
+    const { theme, toggleTheme } = useTheme()
+    return (
+        <button onClick={toggleTheme} className="press-scale" aria-label="Toggle dark mode" style={{
+            width: size, height: size, borderRadius: size * 0.26, background: 'var(--surface)',
+            border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center',
+            justifyContent: 'center', color: 'var(--ink-soft)', cursor: 'pointer',
+            transition: 'background 200ms ease, color 200ms ease',
+        }}>
+            {theme === 'dark' ? <ISun size={size * 0.44} /> : <IMoon size={size * 0.44} />}
+        </button>
+    )
+}
 
-    const items = [
-        { id: 'home',    label: 'Home',    I: IHome,   to: '/' },
-        { id: 'route',   label: 'Route',   I: IMap,    to: '/route' },
-        { id: 'chat',    label: 'Chat',    I: IChat,   primary: true, to: '/chat' },
-        { id: 'alerts',  label: 'Alerts',  I: IBell,   to: '/alerts' },
-        { id: 'me',      label: 'Profile', I: IUser,   to: '/me' },
+export function TopNav() {
+    const location = useLocation();
+    const links = [
+        { to: '/', label: 'Home', I: IHome },
+        { to: '/route', label: 'Route', I: IMap },
+        { to: '/chat', label: 'Chat', I: IChat },
+        { to: '/sync', label: 'Sync', I: ISync },
+        { to: '/me', label: 'Profile', I: IUser },
     ];
     return (
-        <div style={{ position: 'sticky', bottom: 0, left: 0, right: 0, zIndex: 40, paddingBottom: 12, paddingTop: 14, paddingLeft: 14, paddingRight: 14, background: 'linear-gradient(180deg, rgba(245,241,232,0) 0%, rgba(245,241,232,0.95) 40%, var(--bg) 100%)' }}>
-            <div style={{ background: 'var(--surface)', borderRadius: 22, boxShadow: '0 2px 4px rgba(20,18,12,0.06), 0 18px 40px rgba(20,18,12,0.14)', padding: '10px 6px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center', border: '1px solid rgba(229,220,201,0.6)' }}>
-                {items.map(({ id, label, I, primary, to }) => {
-                    const active = location.pathname === to || (to === '/' && location.pathname === '/');
-                    return (
-                        <Link key={id} to={to} style={{ background: 'transparent', border: 'none', padding: '4px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, fontFamily: 'Plus Jakarta Sans', fontSize: 10.5, fontWeight: 600, color: active ? 'var(--primary)' : 'var(--ink-soft)', cursor: 'pointer', position: 'relative', textDecoration: 'none', transition: 'transform 150ms ease', transform: active ? 'scale(1.04)' : 'scale(1)' }}>
-                            {primary ? (
-                                <div style={{ width: 42, height: 42, borderRadius: 14, marginTop: -18, background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 18px rgba(46,74,58,0.32), inset 0 1px 0 rgba(255,255,255,0.18)', color: 'white', border: '3px solid #FAF6EC' }}><I size={19} stroke="#fff" /></div>
-                            ) : <I size={22} stroke={active ? '#2E4A3A' : '#6B6A5F'} />}
-                            <span style={{ marginTop: primary ? -2 : 0 }}>{label}</span>
-                            {active && !primary && <span style={{ position: 'absolute', bottom: -4, width: 16, height: 2.5, borderRadius: 99, background: 'var(--primary)' }} />}
-                        </Link>
-                    );
-                })}
+        <header className="top-nav">
+            <div className="top-nav-inner">
+                <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+                    <span style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FAF6EC" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                    </span>
+                    <span style={{ fontFamily: 'Fraunces', fontWeight: 500, fontSize: 18, color: 'var(--ink)', letterSpacing: '-0.01em' }}>AgroPilot</span>
+                </Link>
+                <nav className="top-nav-links">
+                    {links.map(({ to, label, I }) => {
+                        const active = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
+                        return (
+                            <Link key={to} to={to} className={`top-nav-link${active ? ' active' : ''}`}>
+                                <I size={15} stroke={active ? '#2E4A3A' : '#6B6A5F'} />
+                                {label}
+                            </Link>
+                        );
+                    })}
+                </nav>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 999, background: 'var(--primary-soft)', color: 'var(--primary)', fontFamily: 'Plus Jakarta Sans', fontSize: 11.5, fontWeight: 600 }}>
+                        <PulseDot color="var(--primary)" size={5} /> Field Mode
+                    </div>
+                    <ThemeToggle />
+                    <Link to="/alerts" style={{ position: 'relative', width: 34, height: 34, borderRadius: 9, background: 'var(--surface)', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', textDecoration: 'none' }}>
+                        <IBell size={15} />
+                        <span style={{ position: 'absolute', top: 5, right: 5, width: 7, height: 7, borderRadius: 99, background: 'var(--danger)', boxShadow: '0 0 0 1.5px var(--surface)' }} />
+                    </Link>
+                </div>
             </div>
+        </header>
+    );
+}
+
+export function BottomNav() {
+    const location = useLocation();
+    const { t } = useTranslation()
+    const items = [
+        { id: 'home', label: t('nav.home'), I: IHome, to: '/' },
+        { id: 'route', label: t('nav.route'), I: IMap, to: '/route' },
+        { id: 'chat', label: t('nav.chat'), I: IChat, to: '/chat', primary: true },
+        { id: 'sync', label: t('nav.sync'), I: ISync, to: '/sync' },
+        { id: 'me', label: t('nav.profile'), I: IUser, to: '/me' },
+    ];
+    return (
+        <div className="bottom-nav-wrap">
+            {items.map(({ id, label, I, to, primary }) => {
+                const active = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
+                return (
+                    <Link key={id} to={to} className={`bottom-nav-item${active ? ' active' : ''}${primary ? ' primary-item' : ''}`}>
+                        {primary ? (
+                            <div className="bottom-nav-primary-bubble">
+                                <I size={20} stroke="#fff" />
+                            </div>
+                        ) : (
+                            <I size={22} stroke={active ? '#2E4A3A' : '#8A8A8A'} />
+                        )}
+                        <span>{primary ? '' : label}</span>
+                    </Link>
+                );
+            })}
         </div>
     );
 }
@@ -231,29 +222,3 @@ export function ScreenShell({ children, noPad }: { children: React.ReactNode; no
         </div>
     );
 }
-
-export const PulseDot = ({ color = '#B85C3C', size = 6 }) => (
-    <span style={{ position: 'relative', display: 'inline-flex', width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-        <span className="pulse-ring" style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: color }} />
-        <span style={{ position: 'relative', width: size, height: size, borderRadius: '50%', background: color }} />
-    </span>
-);
-
-export const Eyebrow = ({ children, color = 'var(--ink-soft)' }: any) => (
-    <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, color, letterSpacing: '0.18em', textTransform: 'uppercase' as const }}>{children}</span>
-);
-
-export const WheatStalk = ({ size = 64, color = '#1A1A17', opacity = 0.14, style }: any) => (
-    <svg width={size} height={size * 1.4} viewBox="0 0 64 88" fill="none" style={{ opacity, ...style }}>
-        <line x1="32" y1="6" x2="32" y2="84" stroke={color} strokeWidth="1.1" strokeLinecap="round" />
-        {[0, 1, 2, 3, 4, 5, 6, 7].map(i => (
-            <g key={i} transform={`translate(32, ${12 + i * 8.5})`}>
-                <path d="M0 0 Q -7 -3 -11 -10" stroke={color} strokeWidth="1.1" strokeLinecap="round" fill="none" />
-                <path d="M0 0 Q  7 -3  11 -10" stroke={color} strokeWidth="1.1" strokeLinecap="round" fill="none" />
-                <ellipse cx="-8" cy="-6" rx="3.4" ry="1.6" stroke={color} strokeWidth="1" fill="none" transform="rotate(-30 -8 -6)" />
-                <ellipse cx="8" cy="-6" rx="3.4" ry="1.6" stroke={color} strokeWidth="1" fill="none" transform="rotate(30 8 -6)" />
-            </g>
-        ))}
-    </svg>
-);
-
