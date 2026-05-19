@@ -4,8 +4,7 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     groq_api_key: str = ""
-    openweather_api_key: str = ""
-    chat_model: str = "llama-3.3-70b-versatile"
+chat_model: str = "llama-3.3-70b-versatile"
     vision_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
     jwt_secret: str = "dev-secret-change-in-prod"
     jwt_algorithm: str = "HS256"
