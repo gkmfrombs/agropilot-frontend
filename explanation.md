@@ -2,8 +2,8 @@
 
 **Project**: AgroPilot — AI-Guided Field Force Intelligence
 **Hackathon**: Syngenta × IITM Hackathon 2026
-**Document version**: 19 May 2026
-**Status**: Prototype — All endpoints live and tested
+**Document version**: 20 May 2026
+**Status**: Prototype — All features live, tested, and pushed to GitHub
 
 ---
 
@@ -109,9 +109,16 @@ Python 3.14 with venv already set up at `backend/venv/`.
 
 ### Start the server
 ```powershell
-cd "D:\sygenta files\backend"
+# Backend (repo backend — use this one)
+cd "D:\sygenta files\agropilot-frontend\backend"
 .\venv\Scripts\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+# Frontend
+cd "D:\sygenta files\agropilot-frontend\web"
+npm run dev -- --host
 ```
+
+Open: `http://localhost:5173`
 
 **What happens at startup:**
 1. All 8 CSVs load into memory (~2 seconds)
@@ -128,16 +135,17 @@ cd "D:\sygenta files\backend"
 | Variable | Current value | Notes |
 |---|---|---|
 | `GROQ_API_KEY` | Set | Llama-3.3-70b + Llama-4-Scout |
-| `OPENWEATHER_API_KEY` | Set | Fallback weather (Open-Meteo is primary, no key) |
 | `JWT_SECRET` | Set (dev value) | Change to 64-char random string for production |
 | `CHAT_MODEL` | `llama-3.3-70b-versatile` | Text generation |
 | `VISION_MODEL` | `meta-llama/llama-4-scout-17b-16e-instruct` | Crop image diagnosis |
-| `CSV_DIR` | `../agropilot-frontend/data/` | Path to hackathon CSV files |
+| `CSV_DIR` | `../data/` | Relative to repo backend, points to agropilot-frontend/data/ |
 | `PORT` | `8000` | |
 | `NEO4J_URI` | **Empty** | Add AuraDB URI to activate full Neo4j GraphRAG |
 | `NEO4J_USER` | `neo4j` | |
 | `NEO4J_PASS` | **Empty** | |
 | `FRONTEND_URL` | `http://localhost:5173` | |
+
+> Note: `OPENWEATHER_API_KEY` removed — Open-Meteo is primary weather source (free, no key required). Mock fallback activates automatically on any failure.
 
 ---
 
@@ -639,11 +647,11 @@ The query functions in `graphrag_queries.py` silently fall back to `csv_graphrag
 
 ```python
 chat(system, messages, max_tokens=1024) → str
-chat_stream(system, messages, max_tokens=1024) → Generator[str]
+chat_stream(system, messages, max_tokens=2048) → Generator[str]
 vision_chat(system, image_b64, prompt, media_type) → str
 ```
 
-Uses `CHAT_MODEL` (Llama-3.3-70b) for text and `VISION_MODEL` (Llama-4-Scout) for vision. Temperature is fixed at 0.4 for text and 0.2 for vision (more deterministic diagnoses).
+Uses `CHAT_MODEL` (Llama-3.3-70b) for text and `VISION_MODEL` (Llama-4-Scout) for vision. Temperature is fixed at 0.4 for text and 0.2 for vision (more deterministic diagnoses). Chat stream uses `max_tokens=2048` so structured responses (heading + 5 bullets + ROI) don't get truncated.
 
 ### `services/context.py` — Products Catalog + Prompts
 
@@ -726,20 +734,21 @@ Lazy initialization — driver is only created when first query runs. Returns `N
 
 **Rep App (12 screens):**
 
-| Screen | File | API used |
-|---|---|---|
-| Morning Briefing | `MorningBriefing.tsx` | `GET /api/briefing` |
-| Route Planning | `RoutePlanning.tsx` | `GET /api/route` |
-| Visit Copilot | `VisitCopilot.tsx` | `GET /api/copilot/{id}` |
-| Log Visit | `LogVisit.tsx` | `POST /api/visits` |
-| Alerts Feed | `AlertsFeed.tsx` | `GET /api/alerts` |
-| Crop Scanner | `CropScanner.tsx` | `POST /api/scan` |
-| AI Consultant (chat) | `AIConsultant.tsx` | `POST /api/chat/stream` |
-| Reasoning Graph | `ReasoningGraph.tsx` | `GET /api/graph/{rep_id}` |
-| Yield Calculator | `YieldCalculator.tsx` | `POST /api/calculator/roi` |
-| Farmer Profile | `FarmerProfile.tsx` | `GET /api/farmers/{id}` |
-| Retailer Profile | `RetailerProfile.tsx` | `GET /api/retailers/{id}` |
-| Sync Center | `SyncCenter.tsx` | `GET /api/sync` |
+| Screen | File | API used | Notes |
+|---|---|---|---|
+| Login | `Login.tsx` | `POST /auth/login` | Username + password fields, role quick-fill |
+| Morning Briefing | `MorningBriefing.tsx` | `GET /api/briefing` | |
+| Route Planning | `RoutePlanning.tsx` | `GET /api/route` | |
+| Visit Copilot | `VisitCopilot.tsx` | `GET /api/copilot/{id}` | |
+| Log Visit | `LogVisit.tsx` | `POST /api/visits` | |
+| Alerts Feed | `AlertsFeed.tsx` | `GET /api/alerts` | |
+| Crop Scanner | `CropScanner.tsx` | `POST /api/scan` | Camera capture + gallery upload button; routes to chat with scan result |
+| AI Consultant (chat) | `AIConsultant.tsx` | `POST /api/chat/stream` | Structured card format (heading + bullets + confidence + ROI); auto-sends crop scan question on navigation |
+| Reasoning Graph | `ReasoningGraph.tsx` | `GET /api/graph/{rep_id}` | |
+| Yield Calculator | `YieldCalculator.tsx` | `POST /api/calculator/roi` | |
+| Farmer Profile | `FarmerProfile.tsx` | `GET /api/farmers/{id}` | |
+| Retailer Profile | `RetailerProfile.tsx` | `GET /api/retailers/{id}` | |
+| Sync Center | `SyncCenter.tsx` | `GET /api/sync` | |
 
 **Manager Console (5 screens):**
 
@@ -780,13 +789,27 @@ Lazy initialization — driver is only created when first query runs. Returns `N
 5. Restart the server — Neo4j GraphRAG activates automatically
 ```
 
-### Priority Fixes Before Final Demo
+### Frontend Bug Fixes Applied (20 May 2026)
+
+| Fix | What changed |
+|---|---|
+| Login page | Added username + password input fields, show/hide toggle, Enter key submit, role quick-fill cards |
+| CORS | Removed `allow_credentials=True` from CORSMiddleware — was breaking browser SSE/fetch with wildcard origin |
+| Chat structured format | System prompt now includes a concrete full example; parser accepts any heading level + numbered lists; shows card if heading OR 2+ bullets found |
+| Chat token limit | `max_tokens` for stream increased 1024 → 2048 to avoid truncation mid-structure |
+| Chat headline bug | `AIMessageCard` was showing hardcoded demo string instead of actual LLM title — fixed |
+| Crop scanner upload | Added gallery upload button alongside camera capture; separate file input without `capture` attr for iOS/Android gallery access |
+| Scanner → Chat routing | "Ask AgroPilot" now passes scan result as React Router `state.prefill`; chat auto-sends the question on mount |
+| Viewport / responsive | Layout locked to `100dvh` (no URL-bar jump); `overflow: hidden` on root; scroll happens inside `.rep-content` only; no more content overflowing viewport |
+
+### Remaining Items Before Production
 
 - [ ] Connect Neo4j AuraDB for true multi-hop graph queries
 - [ ] Add `farm_id` to visit log so individual farmer visits are trackable
 - [ ] Add competitor activity logging endpoint (`POST /api/visits/{id}/competitors`)
 - [ ] Add offline sync queue status to the sync endpoint
 - [ ] Replace `revenue_lakh` estimates in manager endpoints with real POS aggregation
+- [ ] Add rate limiting on `/api/chat` to protect Groq API quota
 
 ---
 
