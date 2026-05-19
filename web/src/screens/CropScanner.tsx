@@ -30,8 +30,9 @@ export default function CropScanner() {
     const [cameraActive, setCameraActive] = useState(false);
     const [cameraError, setCameraError] = useState(false);
 
-    // File input fallback
+    // File input — for gallery upload (no capture attr so user can pick from gallery)
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const galleryInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         startCamera();
@@ -214,8 +215,10 @@ export default function CropScanner() {
         <div className="screen-root" style={{ position: 'relative', width: '100%', minHeight: '100%', background: 'var(--bg)' }}>
             <TopStrip />
 
-            {/* Hidden fallback file input */}
+            {/* Camera capture input */}
             <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleFileChange} />
+            {/* Gallery upload input — no capture attr so it opens photo library */}
+            <input ref={galleryInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
             {/* Hidden canvas for capturing frame from video */}
             <canvas ref={canvasRef} style={{ display: 'none' }} />
 
@@ -271,15 +274,36 @@ export default function CropScanner() {
 
             {error && <p style={{ textAlign: 'center', color: 'var(--danger)', fontFamily: 'Plus Jakarta Sans', fontSize: 13, padding: '10px 18px 0', fontWeight: 600 }}>{error}</p>}
 
-            {/* Capture button */}
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0 8px' }}>
-                <button onClick={handleCapture} style={{ width: 72, height: 72, borderRadius: '50%', background: 'white', border: '4px solid var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(0,0,0,0.15)' }}>
-                    <ICamera size={28} stroke="var(--primary)" />
-                </button>
+            {/* Capture + Upload buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 28, padding: '24px 18px 8px' }}>
+                {/* Upload from gallery */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                    <button
+                        onClick={() => galleryInputRef.current?.click()}
+                        style={{ width: 54, height: 54, borderRadius: '50%', background: 'var(--surface)', border: '2px solid var(--border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+                    >
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="3" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <polyline points="21 15 16 10 5 21" />
+                        </svg>
+                    </button>
+                    <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: 'var(--ink-soft)', fontWeight: 600 }}>Upload</span>
+                </div>
+
+                {/* Main capture button */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                    <button onClick={handleCapture} style={{ width: 72, height: 72, borderRadius: '50%', background: 'white', border: '4px solid var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(0,0,0,0.15)' }}>
+                        <ICamera size={28} stroke="var(--primary)" />
+                    </button>
+                    <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: 'var(--ink-soft)', fontWeight: 600 }}>
+                        {cameraActive ? 'Capture' : 'Select Photo'}
+                    </span>
+                </div>
+
+                {/* Spacer to balance layout */}
+                <div style={{ width: 54 }} />
             </div>
-            <p style={{ textAlign: 'center', fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: 'var(--ink-soft)', margin: 0 }}>
-                {cameraActive ? 'Tap to capture' : 'Tap to select photo'}
-            </p>
 
             <div style={{ height: 100 }} />
             <BottomNav />
