@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Visit History — AgroPilot Field</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F1E8; --surface: #FFFFFF; --surface-warm: #FAF6EC;
+    --ink: #1A1A17; --ink-soft: #6B6A5F; --primary: #2E4A3A;
+    --primary-soft: #C8D5BB; --accent: #C9974A; --danger: #B85C3C;
+    --warning: #D4A347; --border: #E5DCC9;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: #2c3a22; overflow: hidden; }
+  body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  button { font-family: inherit; outline: none; border: none; cursor: pointer; }
+  a { text-decoration: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-up { animation: fadeUp 540ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  .toast-in { animation: toastIn 380ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.23.0/babel.min.js" crossorigin></script>
+<script type="text/babel">
+  const { useState, useEffect } = React;
+
+  // ===================================================================
+  // iOS Frame
+  // ===================================================================
+  function IOSStatusBar({ dark = false }) {
+    const c = dark ? '#fff' : '#000';
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '21px 24px 19px', position: 'relative', zIndex: 20, width: '100%' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontFamily: '-apple-system,system-ui', fontWeight: 590, fontSize: 17, color: c }}>9:41</span>
+        </div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+          <svg width="19" height="12" viewBox="0 0 19 12"><rect x="0" y="7.5" width="3.2" height="4.5" rx="0.7" fill={c}/><rect x="4.8" y="5" width="3.2" height="7" rx="0.7" fill={c}/><rect x="9.6" y="2.5" width="3.2" height="9.5" rx="0.7" fill={c}/><rect x="14.4" y="0" width="3.2" height="12" rx="0.7" fill={c}/></svg>
+          <svg width="27" height="13" viewBox="0 0 27 13"><rect x="0.5" y="0.5" width="23" height="12" rx="3.5" stroke={c} strokeOpacity="0.35" fill="none"/><rect x="2" y="2" width="20" height="9" rx="2" fill={c}/><path d="M25 4.5V8.5C25.8 8.2 26.5 7.2 26.5 6.5C26.5 5.8 25.8 4.8 25 4.5Z" fill={c} fillOpacity="0.4"/></svg>
+        </div>
+      </div>
+    );
+  }
+
+  function IOSDevice({ children, width = 390, height = 844 }) {
+    return (
+      <div style={{ width, height, borderRadius: 48, overflow: 'hidden', position: 'relative', background: 'var(--bg)', boxShadow: '0 40px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.12)', WebkitFontSmoothing: 'antialiased' }}>
+        <div style={{ position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)', width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 50 }}/>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}><IOSStatusBar/></div>
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>{children}</div>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 60, height: 34, display: 'flex', justifyContent: 'center', alignItems: 'flex-end', paddingBottom: 8, pointerEvents: 'none' }}>
+          <div style={{ width: 139, height: 5, borderRadius: 100, background: 'rgba(0,0,0,0.25)' }}/>
+        </div>
+      </div>
+    );
+  }
+
+  // ===================================================================
+  // Icons
+  // ===================================================================
+  const Icon = ({ d, size = 20, stroke = 'currentColor', fill = 'none' }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{d}</svg>
+  );
+  const IChevL     = (p) => <Icon {...p} d={<path d="m15 18-6-6 6-6"/>}/>;
+  const IChevR     = (p) => <Icon {...p} d={<path d="m9 18 6-6-6-6"/>}/>;
+  const ITrash     = (p) => <Icon {...p} d={<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></>}/>;
+  const ICheckCirc = (p) => <Icon {...p} d={<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></>}/>;
+  const IBox       = (p) => <Icon {...p} d={<><path d="M21 8 12 13 3 8"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M12 13v9"/></>}/>;
+  const IXCircle   = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></>}/>;
+  const IClock     = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>}/>;
+  const IFilter    = (p) => <Icon {...p} d={<><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></>}/>;
+
+  // ===================================================================
+  // Helpers
+  // ===================================================================
+  const OUTCOME_META = {
+    sale:     { label: 'Sale Made',           color: '#2E4A3A', bg: 'rgba(46,74,58,0.10)', I: ICheckCirc },
+    order:    { label: 'Order Placed',        color: '#C9974A', bg: 'rgba(201,151,74,0.12)', I: IBox },
+    none:     { label: 'No Purchase',         color: '#6B6A5F', bg: 'rgba(107,106,95,0.10)', I: IXCircle },
+    followup: { label: 'Follow-up Required',  color: '#B85C3C', bg: 'rgba(184,92,60,0.10)', I: IClock },
+  };
+
+  function fmtDate(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ' · ' +
+           d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function fmtRupee(n) {
+    return '₹' + (n || 0).toLocaleString('en-IN');
+  }
+
+  // Demo entries shown when localStorage is empty
+  const DEMO_ENTRIES = [
+    { id: 1, timestamp: new Date(Date.now() - 2*3600*1000).toISOString(), retailer: 'Baramati Agro', outcome: 'sale', products: [{ name: 'Topik 15 WP', qty: 5, value: 2500 }, { name: 'Score 250 EC', qty: 2, value: 1600 }], totalValue: 4100, competitor: { brand: 'Bayer', product: 'Nativo' }, notes: 'Farmer mentioned high rust pressure in lower fields.', followUpDate: null },
+    { id: 2, timestamp: new Date(Date.now() - 26*3600*1000).toISOString(), retailer: 'Kisan Store, Sandila', outcome: 'order', products: [{ name: 'Actara 25 WG', qty: 10, value: 3500 }], totalValue: 3500, competitor: null, notes: '', followUpDate: '2026-05-22' },
+    { id: 3, timestamp: new Date(Date.now() - 50*3600*1000).toISOString(), retailer: 'Mallawan Panchayat', outcome: 'followup', products: [], totalValue: 0, competitor: null, notes: 'Farmer not available. Will revisit Thursday.', followUpDate: '2026-05-22' },
+    { id: 4, timestamp: new Date(Date.now() - 74*3600*1000).toISOString(), retailer: 'Ramesh Singh', outcome: 'none', products: [], totalValue: 0, competitor: { brand: 'PI Industries', product: 'Fantac' }, notes: 'Price objection. Competitor gave 15% off.', followUpDate: null },
+  ];
+
+  // ===================================================================
+  // Entry detail overlay
+  // ===================================================================
+  function EntryDetail({ entry, onClose }) {
+    const meta = OUTCOME_META[entry.outcome] || OUTCOME_META.none;
+    return (
+      <div style={{ position: 'absolute', inset: 0, zIndex: 100, background: 'var(--bg)', display: 'flex', flexDirection: 'column', animation: 'fadeUp 360ms cubic-bezier(0.16,1,0.3,1) both' }}>
+        {/* Header */}
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(245,241,232,0.92)', backdropFilter: 'blur(14px)', borderBottom: '1px solid rgba(229,220,201,0.7)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 40px', alignItems: 'center', padding: '10px 14px' }}>
+            <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--ink)' }}>
+              <IChevL size={18}/>
+            </button>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontFamily: 'Fraunces', fontWeight: 500, fontSize: 16, color: 'var(--ink)' }}>Visit Detail</div>
+              <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 600, color: 'var(--ink-soft)', marginTop: 2 }}>{entry.retailer}</div>
+            </div>
+            <div/>
+          </div>
+        </div>
+
+        <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '20px 18px 40px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Outcome badge */}
+          <div style={{ background: 'var(--surface)', borderRadius: 20, padding: '18px 20px', border: '1px solid var(--border)', boxShadow: '0 1px 4px rgba(20,18,12,0.03)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: meta.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <meta.I size={22} stroke={meta.color}/>
+              </div>
+              <div>
+                <div style={{ fontFamily: 'Fraunces', fontWeight: 500, fontSize: 18, color: 'var(--ink)' }}>{meta.label}</div>
+                <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: 'var(--ink-soft)', marginTop: 2 }}>{fmtDate(entry.timestamp)}</div>
+              </div>
+            </div>
+            {entry.totalValue > 0 && (
+              <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--surface-warm)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 700, color: 'var(--ink-soft)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Total Value</div>
+                <div style={{ fontFamily: 'Fraunces', fontWeight: 500, fontSize: 26, color: 'var(--primary)', letterSpacing: '-0.02em', marginTop: 2 }}>{fmtRupee(entry.totalValue)}</div>
+              </div>
+            )}
+          </div>
+
+          {/* Products */}
+          {entry.products.length > 0 && (
+            <div>
+              <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 700, color: 'var(--ink-soft)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>Products</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {entry.products.map((p, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface)', borderRadius: 14, padding: '12px 16px', border: '1px solid var(--border)' }}>
+                    <div>
+                      <div style={{ fontFamily: 'Plus Jakarta Sans', fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>{p.name}</div>
+                      <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: 'var(--ink-soft)', marginTop: 2 }}>{p.qty} bags</div>
+                    </div>
+                    <div style={{ fontFamily: 'Fraunces', fontWeight: 500, fontSize: 16, color: 'var(--primary)' }}>{fmtRupee(p.value)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Competitor */}
+          {entry.competitor && (
+            <div style={{ background: 'rgba(184,92,60,0.06)', borderRadius: 16, padding: '14px 16px', border: '1px solid rgba(184,92,60,0.15)' }}>
+              <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 700, color: '#B85C3C', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Competitor Observed</div>
+              <div style={{ fontFamily: 'Plus Jakarta Sans', fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>{entry.competitor.brand}</div>
+              {entry.competitor.product && <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink-soft)', marginTop: 2 }}>{entry.competitor.product}</div>}
+            </div>
+          )}
+
+          {/* Follow-up */}
+          {entry.followUpDate && (
+            <div style={{ background: 'rgba(201,151,74,0.08)', borderRadius: 16, padding: '14px 16px', border: '1px solid rgba(201,151,74,0.20)' }}>
+              <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 700, color: '#C9974A', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Follow-up Scheduled</div>
+              <div style={{ fontFamily: 'Plus Jakarta Sans', fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>{new Date(entry.followUpDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+            </div>
+          )}
+
+          {/* Notes */}
+          {entry.notes && (
+            <div>
+              <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 700, color: 'var(--ink-soft)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Notes</div>
+              <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '14px 16px', border: '1px solid var(--border)', fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: 'var(--ink)', lineHeight: 1.55 }}>{entry.notes}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ===================================================================
+  // Main screen
+  // ===================================================================
+  function VisitHistory() {
+    const [entries, setEntries] = useState([]);
+    const [filter, setFilter]   = useState('all');
+    const [detail, setDetail]   = useState(null);
+    const [toast, setToast]     = useState(null);
+
+    // Load from localStorage (fall back to demo data)
+    useEffect(() => {
+      try {
+        const saved = JSON.parse(localStorage.getItem('agropilot_visit_log') || '[]');
+        setEntries(saved.length > 0 ? saved : DEMO_ENTRIES);
+      } catch (_) {
+        setEntries(DEMO_ENTRIES);
+      }
+    }, []);
+
+    const deleteEntry = (id) => {
+      const updated = entries.filter(e => e.id !== id);
+      setEntries(updated);
+      try { localStorage.setItem('agropilot_visit_log', JSON.stringify(updated)); } catch (_) {}
+      setToast('Entry deleted');
+      setTimeout(() => setToast(null), 2200);
+    };
+
+    const filtered = filter === 'all' ? entries : entries.filter(e => e.outcome === filter);
+    const totalValue = entries.reduce((s, e) => s + (e.totalValue || 0), 0);
+    const salesCount = entries.filter(e => e.outcome === 'sale' || e.outcome === 'order').length;
+
+    return (
+      <div style={{ position: 'relative', width: '100%', height: '100%', background: 'var(--bg)', paddingTop: 48, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+        {/* Paper grain */}
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.45, zIndex: 0, backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.09 0 0 0 0 0.07 0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")` }}/>
+
+        {/* Toast */}
+        {toast && (
+          <div className="toast-in" style={{ position: 'absolute', top: 60, left: '50%', zIndex: 200, padding: '11px 18px', borderRadius: 14, background: 'var(--primary)', color: 'white', fontFamily: 'Plus Jakarta Sans', fontSize: 13.5, fontWeight: 600, boxShadow: '0 8px 24px rgba(20,18,12,0.15)' }}>
+            {toast}
+          </div>
+        )}
+
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          {/* Header */}
+          <div style={{ position: 'sticky', top: 0, zIndex: 30, background: 'rgba(245,241,232,0.88)', backdropFilter: 'blur(14px)', borderBottom: '1px solid rgba(229,220,201,0.7)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 40px', alignItems: 'center', padding: '10px 14px' }}>
+              <a href="route_planning.html" style={{ width: 36, height: 36, borderRadius: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--ink)' }}>
+                <IChevL size={18}/>
+              </a>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontFamily: 'Fraunces', fontWeight: 500, fontSize: 16, color: 'var(--ink)' }}>Visit Log</div>
+                <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 600, color: 'var(--ink-soft)', marginTop: 2 }}>{entries.length} entries</div>
+              </div>
+              <button style={{ width: 36, height: 36, borderRadius: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--ink)', cursor: 'pointer', justifySelf: 'end' }}>
+                <IFilter size={16}/>
+              </button>
+            </div>
+          </div>
+
+          {/* Stats bar */}
+          <div className="fade-up" style={{ padding: '14px 18px', background: 'var(--surface-warm)', borderBottom: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            {[
+              { label: 'Total Value', value: fmtRupee(totalValue), color: 'var(--primary)' },
+              { label: 'Sales/Orders', value: salesCount, color: 'var(--primary)' },
+              { label: 'Visits', value: entries.length, color: 'var(--ink-soft)' },
+            ].map(s => (
+              <div key={s.label} style={{ textAlign: 'center' }}>
+                <div style={{ fontFamily: 'Fraunces', fontWeight: 500, fontSize: 18, color: s.color, letterSpacing: '-0.02em' }}>{s.value}</div>
+                <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10.5, fontWeight: 600, color: 'var(--ink-soft)', marginTop: 2 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Filter tabs */}
+          <div className="no-scrollbar" style={{ padding: '10px 18px', display: 'flex', gap: 8, overflowX: 'auto', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
+            {[['all', 'All'], ['sale', 'Sale'], ['order', 'Order'], ['followup', 'Follow-up'], ['none', 'No Sale']].map(([id, label]) => (
+              <button key={id} onClick={() => setFilter(id)} style={{ flex: 'none', padding: '6px 14px', borderRadius: 999, border: 'none', background: filter === id ? 'var(--primary)' : 'var(--surface)', color: filter === id ? 'white' : 'var(--ink-soft)', fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 180ms', boxShadow: filter === id ? '0 4px 10px rgba(46,74,58,0.18)' : 'none' }}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Entries list */}
+          <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '12px 18px 40px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {filtered.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink-soft)', fontFamily: 'Plus Jakarta Sans', fontSize: 14 }}>
+                No visits logged yet.<br/>
+                <a href="log_visit_outcome.html" style={{ color: 'var(--primary)', fontWeight: 600, marginTop: 8, display: 'inline-block' }}>Log a visit →</a>
+              </div>
+            )}
+            {filtered.map((entry, i) => {
+              const meta = OUTCOME_META[entry.outcome] || OUTCOME_META.none;
+              return (
+                <div key={entry.id} className="fade-up" style={{ animationDelay: `${i * 50}ms`, background: 'var(--surface)', borderRadius: 20, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(20,18,12,0.04), 0 6px 18px rgba(20,18,12,0.06)' }}>
+                  <div onClick={() => setDetail(entry)} style={{ padding: '14px 16px', cursor: 'pointer' }}>
+                    {/* Outcome pill + retailer */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: meta.bg }}>
+                        <meta.I size={13} stroke={meta.color}/>
+                        <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11.5, fontWeight: 700, color: meta.color }}>{meta.label}</span>
+                      </div>
+                      {entry.totalValue > 0 && (
+                        <span style={{ fontFamily: 'Fraunces', fontWeight: 500, fontSize: 16, color: 'var(--primary)', letterSpacing: '-0.01em' }}>{fmtRupee(entry.totalValue)}</span>
+                      )}
+                    </div>
+
+                    <div style={{ fontFamily: 'Fraunces', fontWeight: 500, fontSize: 16, color: 'var(--ink)', marginBottom: 3, fontVariationSettings: '"opsz" 18' }}>{entry.retailer}</div>
+                    <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: 'var(--ink-soft)', marginBottom: 6 }}>{fmtDate(entry.timestamp)}</div>
+
+                    {/* Products preview */}
+                    {entry.products.length > 0 && (
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {entry.products.map((p, pi) => (
+                          <span key={pi} style={{ padding: '3px 9px', borderRadius: 999, background: 'var(--surface-warm)', border: '1px solid var(--border)', fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 600, color: 'var(--ink-soft)' }}>{p.name} ×{p.qty}</span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Competitor flag */}
+                    {entry.competitor && (
+                      <div style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 999, background: 'rgba(184,92,60,0.08)', border: '1px solid rgba(184,92,60,0.15)' }}>
+                        <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: 700, color: '#B85C3C' }}>⚠ {entry.competitor.brand} observed</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action row */}
+                  <div style={{ display: 'flex', borderTop: '1px solid var(--border)' }}>
+                    <button onClick={() => setDetail(entry)} style={{ flex: 1, padding: '11px 0', background: 'none', fontFamily: 'Plus Jakarta Sans', fontSize: 12.5, fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                      View details <IChevR size={14} stroke="var(--primary)"/>
+                    </button>
+                    <div style={{ width: 1, background: 'var(--border)' }}/>
+                    <button onClick={() => deleteEntry(entry.id)} style={{ flex: 'none', padding: '11px 16px', background: 'none', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <ITrash size={16} stroke="var(--danger)"/>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Log new button */}
+            <a href="log_visit_outcome.html" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '14px 0', borderRadius: 20, border: '1.5px dashed var(--border)', background: 'transparent', fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', marginTop: 4 }}>
+              + Log new visit
+            </a>
+          </div>
+        </div>
+
+        {/* Detail overlay */}
+        {detail && <EntryDetail entry={detail} onClose={() => setDetail(null)}/>}
+      </div>
+    );
+  }
+
+  function App() {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, background: 'radial-gradient(at 28% 14%, #586b3f 0%, #3f5230 50%, #2c3a22 100%)' }}>
+        <IOSDevice width={390} height={844}>
+          <VisitHistory/>
+        </IOSDevice>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

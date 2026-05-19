@@ -11,6 +11,7 @@
 //  · Bottom nav polished, primary action elevated
 
 const useState = React.useState;
+const useEffect = React.useEffect;
 
 // ===================================================================
 // Icons (Lucide-style, 1.5 stroke, rounded)
@@ -34,6 +35,8 @@ const ISync = (p) => <Icon {...p} d={<><path d="M3 12a9 9 0 0 1 14.85-6.85L21 8"
 const IUser = (p) => <Icon {...p} d={<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>} />;
 const ICheck = (p) => <Icon {...p} d={<path d="M20 6 9 17l-5-5"/>} />;
 const ISpark = (p) => <Icon {...p} d={<path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>} />;
+const ISun = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></>}/>;
+const ICloudSun = (p) => <Icon {...p} d={<><path d="M12 2v2M4.93 4.93l1.41 1.41M2 12h2M19.07 4.93l-1.41 1.41"/><path d="M13 16a5 5 0 0 0-10 0h10Z"/><path d="M17.5 16a4.5 4.5 0 0 0-1.5-8.75A5 5 0 0 0 9 12"/></>}/>;
 
 // ===================================================================
 // Tokens
@@ -128,6 +131,32 @@ function TopStrip() {
 // Cinematic hero — greeting laid over a wheat-at-golden-hour photo
 // ===================================================================
 function Hero() {
+  const [wx, setWx] = useState(null);
+
+  useEffect(() => {
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=27.4&longitude=80.13&current=temperature_2m,precipitation_probability,weather_code&timezone=Asia%2FKolkata&forecast_days=1')
+      .then(r => r.json())
+      .then(d => {
+        const c = d.current;
+        setWx({ temp: Math.round(c.temperature_2m), rain: c.precipitation_probability, code: c.weather_code });
+      })
+      .catch(() => {});
+  }, []);
+
+  function wxLabel(code, rain) {
+    if (code === 0 || code === 1) return rain > 20 ? `${rain}% chance rain` : 'Clear sky';
+    if (code <= 3) return 'Partly cloudy';
+    if (code <= 48) return 'Foggy';
+    if (code <= 55) return 'Light drizzle';
+    if (code <= 67) return `Rain · ${rain}%`;
+    if (code <= 82) return `Showers · ${rain}%`;
+    if (code >= 95) return 'Thunderstorm';
+    return 'Overcast';
+  }
+
+  const wxText = wx ? `${wx.temp}° · ${wxLabel(wx.code, wx.rain)}` : '…';
+  const WxIcon = wx && wx.code <= 3 && wx.rain < 50 ? ISun : ICloudRain;
+
   return (
     <div className="fade-up" style={{ animationDelay: '0ms',
         margin: '14px 18px 0', borderRadius: 24, overflow: 'hidden',
@@ -160,7 +189,7 @@ function Hero() {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Eyebrow color="rgba(245,241,232,0.78)">Tue · 16 May · Hardoi</Eyebrow>
-          {/* weather glass chip */}
+          {/* weather glass chip — live data */}
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
             padding: '6px 11px 6px 9px', borderRadius: 999,
@@ -170,8 +199,8 @@ function Hero() {
             border: '1px solid rgba(245,241,232,0.22)',
             color: '#F5F1E8',
           }}>
-            <ICloudRain size={15} stroke="#F5F1E8"/>
-            <span style={{ fontFamily: 'Plus Jakarta Sans', fontWeight: 600, fontSize: 12 }}>32° · Rain by 3pm</span>
+            <WxIcon size={15} stroke="#F5F1E8"/>
+            <span style={{ fontFamily: 'Plus Jakarta Sans', fontWeight: 600, fontSize: 12 }}>{wxText}</span>
           </div>
         </div>
 

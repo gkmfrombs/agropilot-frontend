@@ -61,6 +61,54 @@
     50%      { transform: scale(1.12); box-shadow: 0 0 0 12px rgba(184,92,60,0), 0 10px 22px rgba(46,74,58,0.36); }
   }
   .fab-pulse { animation: fabPulse 1.2s ease-in-out infinite; transform-origin: center; }
+
+  @keyframes slideUpFull {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  @keyframes edgeDraw {
+    from { stroke-dashoffset: 200; opacity: 0; }
+    20%  { opacity: 1; }
+    to   { stroke-dashoffset: 0; opacity: 1; }
+  }
+  .edge-draw {
+    stroke-dasharray: 200; stroke-dashoffset: 200; opacity: 0;
+    animation: edgeDraw 900ms cubic-bezier(0.5, 0, 0.2, 1) forwards;
+  }
+
+  @keyframes edgeLabelIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .edge-label {
+    opacity: 0; transform-origin: center;
+    animation: edgeLabelIn 360ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes nodeIn {
+    0%   { opacity: 0; transform: scale(0.78); }
+    60%  { opacity: 1; transform: scale(1.06); }
+    100% { transform: scale(1); }
+  }
+  .node-in {
+    opacity: 0; transform-origin: center;
+    animation: nodeIn 620ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  @keyframes centerGlow {
+    0%, 100% { stroke-opacity: 0.18; r: 48; }
+    50%      { stroke-opacity: 0.50; r: 56; }
+  }
+  .center-glow { animation: centerGlow 3.4s ease-in-out infinite; transform-origin: center; }
+
+  @keyframes flyoutIn {
+    from { opacity: 0; transform: translateY(40px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>
 </head>
 <body>

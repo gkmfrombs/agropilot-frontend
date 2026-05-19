@@ -247,10 +247,28 @@
         return;
       }
 
+      // Persist to localStorage
+      const entry = {
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        retailer: 'Baramati Agro',
+        outcome,
+        products: products.filter(p => p.selected && p.qty > 0).map(p => ({ name: p.name, qty: p.qty, value: p.price * p.qty })),
+        totalValue: products.filter(p => p.selected).reduce((s, p) => s + p.price * p.qty, 0),
+        competitor: sawCompetitor ? { brand: compBrand, product: compProduct } : null,
+        followUpDate: followUpDate || null,
+        notes,
+      };
+      try {
+        const prev = JSON.parse(localStorage.getItem('agropilot_visit_log') || '[]');
+        prev.unshift(entry);
+        localStorage.setItem('agropilot_visit_log', JSON.stringify(prev.slice(0, 100)));
+      } catch (_) {}
+
       setToast({ type: 'success', msg: '✓ Visit logged (Offline sync queued)' });
       setTimeout(() => {
         setToast(null);
-        window.location.href = "route_planning.html";
+        window.location.href = 'visit_history.html';
       }, 2000);
     };
 

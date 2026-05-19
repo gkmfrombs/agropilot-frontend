@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 <style>
   :root {
     --bg: #F5F1E8;
@@ -36,24 +38,34 @@
   }
   .fade-up { animation: fadeUp 620ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 
-  @keyframes pulseRing {
-    0%   { transform: scale(0.8); opacity: 0.8; }
-    100% { transform: scale(2.5); opacity: 0; }
+  /* Leaflet map overrides to fit iOS frame */
+  #map-container {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+    transform-origin: top center;
   }
-  .pulse-ring::before {
-    content: ''; position: absolute; inset: 0;
-    border-radius: 50%; background: inherit;
-    animation: pulseRing 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-    z-index: -1;
+  #map-container .leaflet-container {
+    width: 100%;
+    height: 100%;
+    background: #d4dbb4;
+    font-family: 'Plus Jakarta Sans', sans-serif;
   }
-
-  @keyframes dashMove {
-    to { stroke-dashoffset: -20; }
+  /* Custom map pin popup */
+  .leaflet-popup-content-wrapper {
+    border-radius: 14px !important;
+    box-shadow: 0 8px 24px rgba(20,18,12,0.14) !important;
+    border: 1px solid var(--border) !important;
+    padding: 0 !important;
+    overflow: hidden;
   }
-  .route-line {
-    stroke-dasharray: 6 6;
-    animation: dashMove 1s linear infinite;
-  }
+  .leaflet-popup-content { margin: 0 !important; }
+  .leaflet-popup-tip-container { display: none; }
+  /* Hide default Leaflet attribution (too intrusive on mock) */
+  .leaflet-control-attribution { font-size: 8px !important; opacity: 0.5; }
+  /* Route polyline pulse */
+  @keyframes dashMove { to { stroke-dashoffset: -24; } }
 </style>
 </head>
 <body>
@@ -62,9 +74,11 @@
 <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone@7.23.0/babel.min.js" crossorigin></script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
 <script type="text/babel">
-  const { useState, useEffect } = React;
+  const { useState, useEffect, useRef } = React;
 
   // ===================================================================
   // Icons
@@ -72,28 +86,25 @@
   const Icon = ({ d, size = 20, stroke = 'currentColor', fill = 'none', vb = '0 0 24 24', style }) => (
     <svg width={size} height={size} viewBox={vb} fill={fill} stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={style}>{d}</svg>
   );
-  const IHome = (p) => <Icon {...p} d={<><path d="M3 9.5 12 2l9 7.5V20a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2z"/></>}/>;
-  const IMap = (p) => <Icon {...p} d={<><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14"/><path d="M15 6v14"/></>}/>;
-  const IChat = (p) => <Icon {...p} d={<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/>}/>;
-  const ISync = (p) => <Icon {...p} d={<><path d="M3 12a9 9 0 0 1 14.85-6.85L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-14.85 6.85L3 16"/><path d="M3 21v-5h5"/></>}/>;
-  const IUser = (p) => <Icon {...p} d={<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>}/>;
-  const INav = (p) => <Icon {...p} d={<path d="m3 11 19-9-9 19-2-8-8-2z"/>}/>;
+  const IHome   = (p) => <Icon {...p} d={<><path d="M3 9.5 12 2l9 7.5V20a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2z"/></>}/>;
+  const IMap    = (p) => <Icon {...p} d={<><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14"/><path d="M15 6v14"/></>}/>;
+  const IChat   = (p) => <Icon {...p} d={<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/>}/>;
+  const ISync   = (p) => <Icon {...p} d={<><path d="M3 12a9 9 0 0 1 14.85-6.85L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-14.85 6.85L3 16"/><path d="M3 21v-5h5"/></>}/>;
+  const IUser   = (p) => <Icon {...p} d={<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>}/>;
+  const INav    = (p) => <Icon {...p} d={<path d="m3 11 19-9-9 19-2-8-8-2z"/>}/>;
   const ILayers = (p) => <Icon {...p} d={<><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>}/>;
-  const IDrag = (p) => <Icon {...p} d={<><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></>}/>;
-  const IAlert = (p) => <Icon {...p} d={<><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>}/>;
+  const IDrag   = (p) => <Icon {...p} d={<><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></>}/>;
+  const IAlert  = (p) => <Icon {...p} d={<><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>}/>;
 
   // ===================================================================
-  // Embedded iOS Frame Components
+  // iOS Frame (inline)
   // ===================================================================
   function IOSStatusBar({ dark = false, time = '9:41' }) {
     const c = dark ? '#fff' : '#000';
     return (
-      <div style={{
-        display: 'flex', gap: 154, alignItems: 'center', justifyContent: 'center',
-        padding: '21px 24px 19px', boxSizing: 'border-box', position: 'relative', zIndex: 20, width: '100%',
-      }}>
+      <div style={{ display: 'flex', gap: 154, alignItems: 'center', justifyContent: 'center', padding: '21px 24px 19px', boxSizing: 'border-box', position: 'relative', zIndex: 20, width: '100%' }}>
         <div style={{ flex: 1, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 1.5 }}>
-          <span style={{ fontFamily: '-apple-system, "SF Pro", system-ui', fontWeight: 590, fontSize: 17, lineHeight: '22px', color: c }}>{time}</span>
+          <span style={{ fontFamily: '-apple-system, "SF Pro", system-ui', fontWeight: 590, fontSize: 17, lineHeight: '22px', color: c }}>9:41</span>
         </div>
         <div style={{ flex: 1, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, paddingTop: 1, paddingRight: 1 }}>
           <svg width="19" height="12" viewBox="0 0 19 12"><rect x="0" y="7.5" width="3.2" height="4.5" rx="0.7" fill={c}/><rect x="4.8" y="5" width="3.2" height="7" rx="0.7" fill={c}/><rect x="9.6" y="2.5" width="3.2" height="9.5" rx="0.7" fill={c}/><rect x="14.4" y="0" width="3.2" height="12" rx="0.7" fill={c}/></svg>
@@ -106,10 +117,7 @@
 
   function IOSDevice({ children, width = 390, height = 844, dark = false }) {
     return (
-      <div style={{
-        width, height, borderRadius: 48, overflow: 'hidden', position: 'relative', background: dark ? '#000' : 'var(--bg)',
-        boxShadow: '0 40px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.12)', fontFamily: '-apple-system, system-ui, sans-serif', WebkitFontSmoothing: 'antialiased',
-      }}>
+      <div style={{ width, height, borderRadius: 48, overflow: 'hidden', position: 'relative', background: dark ? '#000' : 'var(--bg)', boxShadow: '0 40px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.12)', fontFamily: '-apple-system, system-ui, sans-serif', WebkitFontSmoothing: 'antialiased' }}>
         <div style={{ position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)', width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 50 }} />
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}><IOSStatusBar dark={dark} /></div>
         <div style={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>{children}</div>
@@ -120,43 +128,26 @@
     );
   }
 
+  // ===================================================================
+  // Bottom Nav
+  // ===================================================================
   function BottomNav({ activeId }) {
     const items = [
       { id: 'home', label: 'Home', I: IHome, href: 'Morning Briefing.html' },
-      { id: 'map', label: 'Map', I: IMap, href: 'route_planning.html' },
+      { id: 'map',  label: 'Map',  I: IMap,  href: 'route_planning.html' },
       { id: 'chat', label: 'Chat', I: IChat, primary: true, href: 'AI Consultant.html' },
       { id: 'sync', label: 'Sync', I: ISync, href: 'Sync Center.html' },
-      { id: 'me', label: 'Profile', I: IUser, href: 'Farmer Profile.html' },
+      { id: 'me',   label: 'Profile', I: IUser, href: 'Farmer Profile.html' },
     ];
     return (
-      <div style={{
-        position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 40,
-        paddingBottom: 22, paddingTop: 30, paddingLeft: 14, paddingRight: 14,
-        background: 'linear-gradient(180deg, rgba(245,241,232,0) 0%, rgba(245,241,232,0.92) 30%, var(--bg) 62%)',
-        pointerEvents: 'none',
-      }}>
-        <div style={{
-          background: 'var(--surface)', borderRadius: 22, border: '1px solid rgba(229,220,201,0.6)',
-          boxShadow: '0 2px 4px rgba(20,18,12,0.06), 0 18px 40px rgba(20,18,12,0.14)',
-          padding: '10px 6px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center', pointerEvents: 'auto',
-        }}>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 40, paddingBottom: 22, paddingTop: 30, paddingLeft: 14, paddingRight: 14, background: 'linear-gradient(180deg, rgba(245,241,232,0) 0%, rgba(245,241,232,0.92) 30%, var(--bg) 62%)', pointerEvents: 'none' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: 22, border: '1px solid rgba(229,220,201,0.6)', boxShadow: '0 2px 4px rgba(20,18,12,0.06), 0 18px 40px rgba(20,18,12,0.14)', padding: '10px 6px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center', pointerEvents: 'auto' }}>
           {items.map(({ id, label, I, primary, href }) => {
             const active = id === activeId;
             return (
-              <a key={id} href={href} style={{
-                background: 'transparent', border: 'none', padding: '4px 0',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                fontFamily: 'Plus Jakarta Sans', fontSize: 10.5, fontWeight: 600,
-                color: active ? 'var(--primary)' : 'var(--ink-soft)',
-                cursor: 'pointer', position: 'relative', textDecoration: 'none',
-                transform: active ? 'scale(1.04)' : 'scale(1)', transition: 'all 200ms',
-              }}>
+              <a key={id} href={href} style={{ background: 'transparent', border: 'none', padding: '4px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, fontFamily: 'Plus Jakarta Sans', fontSize: 10.5, fontWeight: 600, color: active ? 'var(--primary)' : 'var(--ink-soft)', cursor: 'pointer', position: 'relative', textDecoration: 'none', transform: active ? 'scale(1.04)' : 'scale(1)', transition: 'all 200ms' }}>
                 {primary ? (
-                  <div style={{
-                    width: 42, height: 42, borderRadius: 14, marginTop: -18,
-                    background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 8px 18px rgba(46,74,58,0.32), inset 0 1px 0 rgba(255,255,255,0.18)', color: 'white', border: '3px solid #FAF6EC',
-                  }}><I size={19} stroke="#fff"/></div>
+                  <div style={{ width: 42, height: 42, borderRadius: 14, marginTop: -18, background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 18px rgba(46,74,58,0.32), inset 0 1px 0 rgba(255,255,255,0.18)', color: 'white', border: '3px solid #FAF6EC' }}><I size={19} stroke="#fff"/></div>
                 ) : <I size={22} stroke={active ? '#2E4A3A' : '#6B6A5F'}/>}
                 <span style={{ marginTop: primary ? -2 : 0 }}>{label}</span>
                 {active && <span style={{ position: 'absolute', bottom: -4, width: 16, height: 2.5, borderRadius: 99, background: 'var(--primary)' }}/>}
@@ -169,166 +160,188 @@
   }
 
   // ===================================================================
-  // Route Data
+  // Route data — real GPS coords (Hardoi district, UP)
   // ===================================================================
   const INITIAL_STOPS = [
-    { id: 's1', name: 'Bhatpura Plot 4', type: 'farmer', risk: 'HIGH', x: 80, y: 250, details: 'Wheat blight risk · 3.2 acres', time: '09:00 AM' },
-    { id: 's2', name: 'Kisan Store, Sandila', type: 'retailer', risk: 'LOW', x: 280, y: 230, details: 'Routine restock · Syngenta P1', time: '10:15 AM' },
-    { id: 's3', name: 'Mallawan Panchayat', type: 'farmer', risk: 'MEDIUM', x: 310, y: 450, details: 'Soil sample collection', time: '12:30 PM' },
-    { id: 's4', name: 'Ramesh Singh', type: 'farmer', risk: 'LOW', x: 140, y: 540, details: 'Yield estimate follow-up', time: '02:00 PM' },
-    { id: 's5', name: 'Baramati Agro', type: 'retailer', risk: 'HIGH', x: 100, y: 740, details: 'Tilt 25EC critical stockout', time: '04:00 PM' },
+    { id: 's1', name: 'Bhatpura Plot 4',      type: 'farmer',   risk: 'HIGH',   lat: 27.428, lng: 80.118, details: 'Wheat blight risk · 3.2 acres',   time: '09:00 AM' },
+    { id: 's2', name: 'Kisan Store, Sandila', type: 'retailer', risk: 'LOW',    lat: 27.411, lng: 80.145, details: 'Routine restock · Syngenta P1',    time: '10:15 AM' },
+    { id: 's3', name: 'Mallawan Panchayat',   type: 'farmer',   risk: 'MEDIUM', lat: 27.392, lng: 80.129, details: 'Soil sample collection',           time: '12:30 PM' },
+    { id: 's4', name: 'Ramesh Singh',         type: 'farmer',   risk: 'LOW',    lat: 27.376, lng: 80.138, details: 'Yield estimate follow-up',         time: '02:00 PM' },
+    { id: 's5', name: 'Baramati Agro',        type: 'retailer', risk: 'HIGH',   lat: 27.358, lng: 80.112, details: 'Tilt 25EC critical stockout',      time: '04:00 PM' },
   ];
 
-  const getRiskColor = (risk) => {
-    if (risk === 'HIGH') return 'var(--danger)';
-    if (risk === 'MEDIUM') return 'var(--warning)';
-    return 'var(--primary)';
-  };
+  const RISK_COLOR = { HIGH: '#B85C3C', MEDIUM: '#D4A347', LOW: '#2E4A3A' };
 
   // ===================================================================
-  // Route Planning Screen
+  // Leaflet map component
+  // ===================================================================
+  function LeafletMap({ stops, sheetExpanded }) {
+    const mapDivRef = useRef(null);
+    const mapRef    = useRef(null);
+    const markersRef = useRef([]);
+    const routeRef  = useRef(null);
+
+    // Init map once
+    useEffect(() => {
+      if (!mapDivRef.current || mapRef.current) return;
+
+      const centerLat = stops.reduce((s, p) => s + p.lat, 0) / stops.length;
+      const centerLng = stops.reduce((s, p) => s + p.lng, 0) / stops.length;
+
+      const map = L.map(mapDivRef.current, {
+        center: [centerLat, centerLng],
+        zoom: 13,
+        zoomControl: false,
+        attributionControl: true,
+      });
+
+      // Earthy/muted tile layer (CartoDB Voyager — no key needed)
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap contributors © CARTO',
+        maxZoom: 18,
+      }).addTo(map);
+
+      // Current location blue dot
+      L.circleMarker([centerLat + 0.022, centerLng - 0.012], {
+        radius: 8, color: 'white', weight: 3,
+        fillColor: '#2F80ED', fillOpacity: 1,
+      }).addTo(map);
+
+      mapRef.current = map;
+    }, []);
+
+    // Update markers + route whenever stops change
+    useEffect(() => {
+      if (!mapRef.current) return;
+      const map = mapRef.current;
+
+      // Clear old markers
+      markersRef.current.forEach(m => map.removeLayer(m));
+      markersRef.current = [];
+      if (routeRef.current) { map.removeLayer(routeRef.current); routeRef.current = null; }
+
+      // Draw route polyline
+      const latlngs = stops.map(s => [s.lat, s.lng]);
+      routeRef.current = L.polyline(latlngs, {
+        color: '#2E4A3A', weight: 3, opacity: 0.75,
+        dashArray: '8 8',
+      }).addTo(map);
+
+      // Draw markers
+      stops.forEach((stop, i) => {
+        const color = RISK_COLOR[stop.risk];
+        const html = `
+          <div style="
+            width:32px;height:32px;border-radius:50%;
+            background:${color};border:2.5px solid white;
+            display:flex;align-items:center;justify-content:center;
+            box-shadow:0 4px 12px rgba(20,18,12,0.22);
+            font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:white;
+            cursor:pointer;
+          ">${i + 1}</div>`;
+        const icon = L.divIcon({ html, className: '', iconSize: [32, 32], iconAnchor: [16, 16] });
+        const marker = L.marker([stop.lat, stop.lng], { icon })
+          .addTo(map)
+          .bindPopup(`
+            <div style="padding:12px 14px;min-width:180px;font-family:'Plus Jakarta Sans',sans-serif;">
+              <div style="font-size:11px;font-weight:700;color:${color};letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px;">${stop.risk} RISK</div>
+              <div style="font-size:14px;font-weight:600;color:#1A1A17;margin-bottom:2px;">${stop.name}</div>
+              <div style="font-size:12px;color:#6B6A5F;">${stop.details}</div>
+              <a href="visit_copilot.html" style="display:inline-block;margin-top:10px;padding:7px 14px;border-radius:999px;background:#2E4A3A;color:white;font-size:12px;font-weight:600;text-decoration:none;">Start Visit</a>
+            </div>
+          `, { offset: [0, -16] });
+        markersRef.current.push(marker);
+      });
+    }, [stops]);
+
+    // Shrink map when sheet expands
+    useEffect(() => {
+      if (mapRef.current) {
+        setTimeout(() => mapRef.current.invalidateSize(), 420);
+      }
+    }, [sheetExpanded]);
+
+    return (
+      <div
+        id="map-container"
+        style={{ transform: sheetExpanded ? 'scale(0.95) translateY(-4%)' : 'scale(1)' }}
+      >
+        <div ref={mapDivRef} style={{ width: '100%', height: '100%' }}/>
+      </div>
+    );
+  }
+
+  // ===================================================================
+  // Route Planning screen
   // ===================================================================
   function RoutePlanning() {
-    const [stops, setStops] = useState(INITIAL_STOPS);
-    const [filter, setFilter] = useState('All'); 
-    const [sheetExpanded, setSheetExpanded] = useState(false);
-    const [emergencyMode, setEmergencyMode] = useState(false);
-    
-    // Simulate incoming alert after 3 seconds
+    const [stops, setStops]           = useState(INITIAL_STOPS);
+    const [filter, setFilter]         = useState('All');
+    const [sheetExpanded, setSheet]   = useState(false);
+    const [emergencyMode, setEmergency] = useState(false);
+
     useEffect(() => {
-      const t = setTimeout(() => setEmergencyMode(true), 3500);
+      const t = setTimeout(() => setEmergency(true), 3500);
       return () => clearTimeout(t);
     }, []);
 
-    const handleReorder = (dragIndex, dropIndex) => {
-      if (dragIndex === dropIndex) return;
-      const newStops = [...stops];
-      const [moved] = newStops.splice(dragIndex, 1);
-      newStops.splice(dropIndex, 0, moved);
-      setStops(newStops);
+    const handleEmergencyReroute = () => {
+      setEmergency(false);
+      const sorted = [...stops].sort((a, b) => {
+        const order = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+        return order[a.risk] - order[b.risk];
+      });
+      setStops(sorted);
+      setSheet(true);
     };
 
-    const handleEmergencyReroute = () => {
-      setEmergencyMode(false);
-      const newStops = [...stops].sort((a, b) => {
-        if (a.risk === 'HIGH' && b.risk !== 'HIGH') return -1;
-        if (b.risk === 'HIGH' && a.risk !== 'HIGH') return 1;
-        return 0;
-      });
-      setStops(newStops);
-      setSheetExpanded(true);
+    const handleReorder = (dragIdx, dropIdx) => {
+      if (dragIdx === dropIdx) return;
+      const arr = [...stops];
+      const [moved] = arr.splice(dragIdx, 1);
+      arr.splice(dropIdx, 0, moved);
+      setStops(arr);
     };
+
+    const visibleStops = filter === 'All'    ? stops
+                       : filter === 'Urgent' ? stops.filter(s => s.risk === 'HIGH')
+                       : stops.filter(s => s.risk !== 'HIGH');
 
     return (
-      <div style={{ position: 'relative', width: '100%', height: '100%', background: '#B8C1B0' }}>
-        
-        {/* Paper Grain Overlay */}
-        <div style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.5, zIndex: 1,
-          backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.09 0 0 0 0 0.07 0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`,
-        }}/>
+      <div style={{ position: 'relative', width: '100%', height: '100%', background: '#d4dbb4', overflow: 'hidden' }}>
 
-        {/* Top Controls (Under Status Bar) */}
-        <div style={{
-          position: 'absolute', top: 60, left: 18, right: 18, zIndex: 20,
-          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-        }}>
-          <div className="no-scrollbar" style={{
-            display: 'flex', gap: 8, overflowX: 'auto',
-            background: 'var(--surface)', padding: 6, borderRadius: 999,
-            boxShadow: '0 4px 14px rgba(20,18,12,0.08)', border: '1px solid var(--border)',
-          }}>
+        {/* Real Leaflet map */}
+        <LeafletMap stops={visibleStops} sheetExpanded={sheetExpanded}/>
+
+        {/* Filter chips + controls */}
+        <div style={{ position: 'absolute', top: 60, left: 18, right: 18, zIndex: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div className="no-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto', background: 'var(--surface)', padding: 6, borderRadius: 999, boxShadow: '0 4px 14px rgba(20,18,12,0.08)', border: '1px solid var(--border)' }}>
             {['All', 'Urgent', 'Routine'].map(f => (
-              <button key={f} onClick={() => setFilter(f)} style={{
-                padding: '6px 14px', borderRadius: 999, border: 'none',
-                background: filter === f ? 'var(--primary)' : 'transparent',
-                color: filter === f ? 'white' : 'var(--ink-soft)',
-                fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: 600,
-                cursor: 'pointer', transition: 'all 200ms ease',
-              }}>{f}</button>
+              <button key={f} onClick={() => setFilter(f)} style={{ padding: '6px 14px', borderRadius: 999, border: 'none', background: filter === f ? 'var(--primary)' : 'transparent', color: filter === f ? 'white' : 'var(--ink-soft)', fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 200ms ease' }}>{f}</button>
             ))}
           </div>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <button style={{
-              width: 44, height: 44, borderRadius: '50%', background: 'var(--surface)',
-              border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 4px 14px rgba(20,18,12,0.08)', cursor: 'pointer', color: 'var(--ink)'
-            }}><ILayers size={20}/></button>
-            <button style={{
-              width: 44, height: 44, borderRadius: '50%', background: 'var(--surface)',
-              border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 4px 14px rgba(20,18,12,0.08)', cursor: 'pointer', color: '#2F80ED'
-            }}><INav size={20}/></button>
+            <button style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(20,18,12,0.08)', cursor: 'pointer', color: 'var(--ink)' }}><ILayers size={20}/></button>
+            <button style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(20,18,12,0.08)', cursor: 'pointer', color: '#2F80ED' }}><INav size={20}/></button>
           </div>
         </div>
 
-        {/* SVG Map Canvas */}
-        <div style={{
-          position: 'absolute', inset: 0, 
-          transform: sheetExpanded ? 'scale(0.95) translateY(-5%)' : 'scale(1)',
-          transition: 'transform 400ms cubic-bezier(0.16, 1, 0.3, 1)',
-          transformOrigin: 'top center', zIndex: 0,
-        }}>
-          <svg width="100%" height="100%" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
-            <path d="M0 0 L390 0 L390 844 L0 844 Z" fill="#D3DAC9" />
-            <path d="M-50 100 Q 150 50 250 200 T 450 300 L 450 900 L -50 900 Z" fill="#C2CDb7" />
-            <path d="M-20 400 Q 100 350 200 500 T 450 600 L 450 900 L -20 900 Z" fill="#B2C0A5" />
-            <path d="M30 0 Q 100 300 80 400 T 150 700 Q 200 800 250 900" fill="none" stroke="#FAF6EC" strokeWidth="6" opacity="0.6"/>
-            <path d="M390 200 Q 250 250 280 400 T 150 700" fill="none" stroke="#FAF6EC" strokeWidth="6" opacity="0.6"/>
-            
-            {stops.length > 1 && (
-              <path d={`M ${stops.map(s => `${s.x} ${s.y}`).join(' L ')}`} 
-                fill="none" stroke="var(--primary)" strokeWidth="3" className="route-line" />
-            )}
-          </svg>
-
-          {/* Current Location Dot */}
-          <div style={{ position: 'absolute', left: 45, top: 190, width: 14, height: 14, borderRadius: '50%', background: '#2F80ED', border: '3px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', zIndex: 10 }} className="pulse-ring"/>
-
-          {/* Map Pins */}
-          {stops.map((stop, i) => (
-            <div key={stop.id} style={{
-              position: 'absolute', left: stop.x, top: stop.y,
-              transform: 'translate(-50%, -50%)', zIndex: 20 + (stops.length - i),
-            }}>
-              <a href="visit_copilot.html" style={{
-                width: 32, height: 32, borderRadius: '50%',
-                background: getRiskColor(stop.risk), border: '2.5px solid white',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 6px 14px rgba(20,18,12,0.18)',
-                color: 'white', fontFamily: 'Fraunces', fontWeight: 600, fontSize: 15,
-                textDecoration: 'none'
-              }}>
-                {i + 1}
-              </a>
-            </div>
-          ))}
-        </div>
-
-        {/* Route Summary Bottom Sheet */}
-        <div style={{
-          position: 'absolute', bottom: 90, left: 0, right: 0, zIndex: 30,
-          background: 'var(--surface)', borderTopLeftRadius: 32, borderTopRightRadius: 32,
-          boxShadow: '0 -10px 40px rgba(20,18,12,0.12)',
-          height: sheetExpanded ? '75%' : 140,
-          transition: 'height 400ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-          display: 'flex', flexDirection: 'column',
-        }}>
-          {/* Drag Handle */}
-          <div onClick={() => setSheetExpanded(!sheetExpanded)} style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 16px', cursor: 'pointer' }}>
+        {/* Bottom sheet */}
+        <div style={{ position: 'absolute', bottom: 90, left: 0, right: 0, zIndex: 30, background: 'var(--surface)', borderTopLeftRadius: 32, borderTopRightRadius: 32, boxShadow: '0 -10px 40px rgba(20,18,12,0.12)', height: sheetExpanded ? '72%' : 148, transition: 'height 400ms cubic-bezier(0.34, 1.56, 0.64, 1)', display: 'flex', flexDirection: 'column' }}>
+          <div onClick={() => setSheet(!sheetExpanded)} style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 16px', cursor: 'pointer' }}>
             <div style={{ width: 44, height: 5, borderRadius: 99, background: 'var(--border)' }}/>
           </div>
 
           <div style={{ padding: '0 24px', flexShrink: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}>
               <div>
-                <h2 style={{ fontFamily: 'Fraunces', fontWeight: 500, fontSize: 24, color: 'var(--ink)', margin: 0, letterSpacing: '-0.02em', fontVariationSettings: '"opsz" 36' }}>
-                  Today's Route
-                </h2>
+                <h2 style={{ fontFamily: 'Fraunces', fontWeight: 500, fontSize: 24, color: 'var(--ink)', margin: 0, letterSpacing: '-0.02em', fontVariationSettings: '"opsz" 36' }}>Today's Route</h2>
                 <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink-soft)', marginTop: 4, fontWeight: 500 }}>
-                  <span style={{ color: 'var(--danger)', fontWeight: 700 }}>2 urgent</span> · 8 stops · 47 km
+                  <span style={{ color: 'var(--danger)', fontWeight: 700 }}>{stops.filter(s => s.risk === 'HIGH').length} urgent</span> · {stops.length} stops · 47 km
                 </div>
+                <a href="visit_history.html" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: 700, color: 'var(--primary)' }}>
+                  View visit log →
+                </a>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontFamily: 'Fraunces', fontWeight: 600, fontSize: 18, color: 'var(--primary)' }}>2h 15m</div>
@@ -336,38 +349,24 @@
               </div>
             </div>
 
-            {/* Emergency Alert Button */}
             {emergencyMode && !sheetExpanded && (
-              <button onClick={handleEmergencyReroute} className="fade-up" style={{
-                width: '100%', padding: '12px', borderRadius: 16, background: 'var(--danger)', color: 'white', border: 'none',
-                fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                marginTop: 8, boxShadow: '0 6px 16px rgba(184, 92, 60, 0.25)', cursor: 'pointer',
-              }}>
+              <button onClick={handleEmergencyReroute} className="fade-up" style={{ width: '100%', padding: '12px', borderRadius: 16, background: 'var(--danger)', color: 'white', border: 'none', fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8, boxShadow: '0 6px 16px rgba(184,92,60,0.25)', cursor: 'pointer' }}>
                 <IAlert size={18}/> New pest alert! Tap to re-route
               </button>
             )}
           </div>
 
-          {/* Expanded List */}
-          <div className="no-scrollbar" style={{
-            flex: 1, overflowY: 'auto', padding: '16px 24px 40px',
-            opacity: sheetExpanded ? 1 : 0, transition: 'opacity 300ms ease',
-            pointerEvents: sheetExpanded ? 'auto' : 'none',
-          }}>
+          {/* Expanded stop list */}
+          <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '16px 24px 40px', opacity: sheetExpanded ? 1 : 0, transition: 'opacity 300ms ease', pointerEvents: sheetExpanded ? 'auto' : 'none' }}>
             {stops.map((stop, i) => (
-              <div key={stop.id} style={{
-                display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 14, alignItems: 'center',
-                padding: '16px 0', borderBottom: '1px solid var(--border)',
-              }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: getRiskColor(stop.risk), color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces', fontWeight: 600, fontSize: 14 }}>
-                  {i + 1}
-                </div>
+              <div key={stop.id} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 14, alignItems: 'center', padding: '16px 0', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: RISK_COLOR[stop.risk], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces', fontWeight: 600, fontSize: 14 }}>{i + 1}</div>
                 <a href="visit_copilot.html" style={{ textDecoration: 'none' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                     <span style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{stop.name}</span>
                     {stop.risk === 'HIGH' && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--danger)' }}/>}
                   </div>
-                  <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink-soft)' }}>{stop.details}</div>
+                  <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink-soft)' }}>{stop.details} · {stop.time}</div>
                 </a>
                 <button onClick={() => handleReorder(i, i === 0 ? stops.length - 1 : 0)} style={{ background: 'transparent', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer' }}>
                   <IDrag size={20}/>
@@ -377,7 +376,7 @@
           </div>
         </div>
 
-        <BottomNav activeId="map" />
+        <BottomNav activeId="map"/>
       </div>
     );
   }
@@ -389,13 +388,13 @@
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, background: 'radial-gradient(at 28% 14%, #586b3f 0%, #3f5230 50%, #2c3a22 100%)' }}>
         <IOSDevice width={390} height={844}>
-          <RoutePlanning />
+          <RoutePlanning/>
         </IOSDevice>
       </div>
     );
   }
 
-  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
