@@ -1,5 +1,6 @@
 import sys
 import os
+import threading
 sys.path.insert(0, os.path.dirname(__file__))
 
 from fastapi import FastAPI
@@ -8,7 +9,8 @@ from contextlib import asynccontextmanager
 
 from config import get_settings
 from data import loader
-from routers import auth, briefing, chat, alerts, farmers, retailers, scan, calculator, manager, route_planning, visits, graph, sync
+from services import rag
+from routers import auth, briefing, chat, alerts, farmers, retailers, scan, calculator, manager, route_planning, graph, visits, copilot, sync, agent
 
 settings = get_settings()
 
@@ -16,6 +18,9 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     loader.load_all()
+    # RAG init runs in background thread — server starts immediately
+    # Chat queries gracefully return empty RAG context until init completes (~30s)
+    threading.Thread(target=rag.init_rag, daemon=True).start()
     yield
 
 
@@ -28,7 +33,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_url, "http://localhost:5173", "http://localhost:5174"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -44,9 +49,11 @@ app.include_router(scan.router)
 app.include_router(calculator.router)
 app.include_router(manager.router)
 app.include_router(route_planning.router)
-app.include_router(visits.router)
 app.include_router(graph.router)
+app.include_router(visits.router)
+app.include_router(copilot.router)
 app.include_router(sync.router)
+app.include_router(agent.router)
 
 
 @app.get("/")

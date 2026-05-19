@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, Query
 from data import loader
 
@@ -7,21 +8,48 @@ router = APIRouter(prefix="/api/route", tags=["route"])
 @router.get("")
 def get_optimized_route(rep_id: str = Query(default="REP_0001"), date: str = Query(default="2026-05-17")):
     retailers = loader.get_retailers_for_rep(rep_id, limit=8)
-    visits = loader.get_visit_history_for_rep(rep_id, limit=50)
+    visits = loader.get_visit_history_for_rep(rep_id, limit=200)
 
-    # Mark recently visited
-    visited_recently = set()
+    # Visit log is tehsil-level — build tehsil → most-recent visit_date map.
+    tehsil_last_visit: dict[str, datetime] = {}
     for v in visits:
-        if hasattr(v.get("visit_date"), "strftime"):
-            visited_recently.add(v.get("retailer_id", ""))
+        tehsil = v.get("visit_tehsil", "")
+        if not tehsil or tehsil in tehsil_last_visit:
+            continue
+        raw_date = v.get("visit_date")
+        if raw_date is None:
+            continue
+        if hasattr(raw_date, "to_pydatetime"):
+            tehsil_last_visit[tehsil] = raw_date.to_pydatetime()
+        elif isinstance(raw_date, datetime):
+            tehsil_last_visit[tehsil] = raw_date
+        else:
+            try:
+                tehsil_last_visit[tehsil] = datetime.fromisoformat(str(raw_date))
+            except ValueError:
+                pass
+
+    now = datetime.now()
 
     route_stops = []
     for i, r in enumerate(retailers[:6]):
-        last_visit_days = 8 + (i * 3)  # simulated days since last visit
+        retailer_id = r["retailer_id"]
+        tehsil = r.get("tehsil", "")
+        last_visit_dt = tehsil_last_visit.get(tehsil)
+
+        if last_visit_dt is not None:
+            # Strip timezone info if present so subtraction is safe
+            if last_visit_dt.tzinfo is not None:
+                last_visit_dt = last_visit_dt.replace(tzinfo=None)
+            last_visit_days = (now - last_visit_dt).days
+        else:
+            # Never visited — treat as 30 days to give it elevated priority
+            last_visit_days = 30
+
         priority = "high" if last_visit_days > 14 else ("medium" if last_visit_days > 7 else "low")
         route_stops.append({
             "stop_number": i + 1,
-            "retailer_id": r["retailer_id"],
+            "retailer_id": retailer_id,
             "tehsil": r.get("tehsil", ""),
             "district": r.get("district", ""),
             "priority": priority,

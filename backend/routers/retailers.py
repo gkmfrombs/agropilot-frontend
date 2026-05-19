@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, HTTPException
 from data import loader
 
 router = APIRouter(prefix="/api/retailers", tags=["retailers"])
@@ -26,10 +26,10 @@ def list_retailers(rep_id: str = Query(default="REP_0001"), limit: int = 20):
 def get_retailer(retailer_id: str):
     retailers = loader.get("retailers")
     if retailers.empty:
-        return {"error": "No data"}
+        raise HTTPException(status_code=503, detail="Data not loaded")
     rows = retailers[retailers["retailer_id"] == retailer_id]
     if rows.empty:
-        return {"error": "Retailer not found"}
+        raise HTTPException(status_code=404, detail=f"Retailer {retailer_id!r} not found")
     r = rows.iloc[0].to_dict()
     inv = loader.get_inventory_for_retailer(retailer_id)
     return {

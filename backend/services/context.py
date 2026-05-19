@@ -4,6 +4,7 @@ This is what makes the AI feel connected to the actual territory data.
 """
 import json
 from data import loader
+from services.weather import get_weather, WEATHER_MOCK
 
 PRODUCTS_CATALOG = {
     "SY_TILT_250EC": {
@@ -74,24 +75,9 @@ PRODUCTS_CATALOG = {
     },
 }
 
-WEATHER_MOCK = {
-    "current": {
-        "temp_c": 24,
-        "humidity_pct": 82,
-        "rainfall_7d_mm": 48,
-        "condition": "Partly cloudy with high humidity",
-        "wind_kmh": 12,
-    },
-    "forecast": [
-        {"day": "Tomorrow", "rain_prob": 65, "temp_c": 23},
-        {"day": "Day+2", "rain_prob": 40, "temp_c": 25},
-        {"day": "Day+3", "rain_prob": 20, "temp_c": 27},
-    ],
-    "risk_flags": [
-        "High humidity (82%) — elevated fungal disease risk for wheat",
-        "48mm rainfall in past 7 days — blight-favorable conditions",
-    ],
-}
+# WEATHER_MOCK kept here for reference only; live data comes from weather.get_weather()
+# The actual fallback dict lives in services/weather.py and is used automatically
+# when the OpenWeatherMap API key is absent or the call fails.
 
 
 def build_rep_context(rep_id: str) -> str:
@@ -101,6 +87,10 @@ def build_rep_context(rep_id: str) -> str:
     growers = loader.get_growers_for_rep(rep_id, limit=8)
     visits = loader.get_visit_history_for_rep(rep_id, limit=10)
     stockout_alerts = loader.get_stockout_alerts()[:5]
+
+    # Derive district for weather lookup from rep record, fall back to mock
+    district = (rep.get("district", "") if rep else "") or "Pune"
+    weather_data = get_weather(district)
 
     # Summarize growers
     grower_summary = []
@@ -141,13 +131,42 @@ def build_rep_context(rep_id: str) -> str:
         if p:
             products_pitched[p] = products_pitched.get(p, 0) + 1
 
+    # WhatsApp click signals for this territory
+    wa_signals: dict = {}
+    wa_df = loader.get("whatsapp")
+    if wa_df is not None and not wa_df.empty:
+        rep_tehsils: list = []
+        if rep:
+            rep_tehsils = rep.get("tehsil_list", [])
+        if rep_tehsils:
+            mask = wa_df["grower_id"].isin(
+                loader.get("growers")[
+                    loader.get("growers")["tehsil"].isin(rep_tehsils)
+                ]["grower_id"].tolist()
+                if loader.get("growers") is not None and not loader.get("growers").empty
+                else []
+            )
+            territory_wa = wa_df[mask]
+        else:
+            territory_wa = wa_df.head(100)
+        clicked = territory_wa[territory_wa["clicked_status"] == True]
+        if not clicked.empty and "campaign_product" in clicked.columns:
+            wa_signals = clicked["campaign_product"].value_counts().head(3).to_dict()
+
+    # POS demand spikes (top selling SKUs this week)
+    pos_demand: dict = {}
+    pos_df = loader.get("pos")
+    if pos_df is not None and not pos_df.empty:
+        top_pos = pos_df.groupby("sku_name")["sku_qty"].sum().sort_values(ascending=False).head(5)
+        pos_demand = top_pos.to_dict()
+
     lines = [
         f"=== TERRITORY CONTEXT FOR REP {rep_id} ===",
         f"Territory: {rep.get('territory_name', 'Unknown') if rep else 'Unknown'}",
         f"State: {rep.get('state', '') if rep else ''}, District: {rep.get('district', '') if rep else ''}",
         "",
         "=== WEATHER & RISK (Current) ===",
-        json.dumps(WEATHER_MOCK, indent=2),
+        json.dumps(weather_data, indent=2),
         "",
         "=== PRODUCT CATALOG (Syngenta Rabi 2025-26) ===",
         json.dumps(PRODUCTS_CATALOG, indent=2),
@@ -163,6 +182,12 @@ def build_rep_context(rep_id: str) -> str:
         "",
         "=== PRODUCTS PITCHED THIS MONTH ===",
         json.dumps(products_pitched, indent=2),
+        "",
+        "=== WHATSAPP CAMPAIGN CLICKS (demand intent signals) ===",
+        json.dumps(wa_signals, indent=2),
+        "",
+        "=== POS DEMAND (top SKUs by units sold) ===",
+        json.dumps(pos_demand, indent=2),
     ]
     return "\n".join(lines)
 
@@ -183,6 +208,42 @@ Response style:
 - Never make up data not in the context
 
 You have access to real territory data including grower profiles, retailer inventory, recent visit history, and current weather signals. Use this data.
+
+=== CROP DISEASE SEASONALITY (India Rabi/Kharif) ===
+Wheat (Rabi Oct-Apr):
+  - Septoria/Blight: high risk at flowering (BBCH 60-70) when humidity >70% + rain >30mm/week
+  - Yellow rust: risk from Jan-Mar in Punjab/UP when temp 10-15°C + dew
+  - Powdery mildew: Feb-Mar, cool+humid conditions
+  - Aphids: Feb-Mar, peak at grain fill stage
+  Critical spray windows: tillering (BBCH 25-30), booting (BBCH 45), flowering (BBCH 60-65)
+
+Potato (Rabi/Kharif):
+  - Late blight: high risk when temp 15-20°C + humidity >80% + rain >2 days consecutive
+  - Early blight: post-monsoon, warm days + cool nights
+  Spray window: every 7-10 days preventive when conditions favor blight
+
+Mustard (Rabi):
+  - Alternaria blight: at flowering/siliqua stage
+  - Aphids: Dec-Jan, check weekly
+  Spray at first sign; Score 250EC or Actara 25WG
+
+Chickpea (Rabi):
+  - Botrytis grey mold: cool humid weather at podding
+  - Helicoverpa: larval damage at podding
+  Actara 25WG for pod borer; Kavach for gray mold
+
+=== MANDI PRICE SIGNALS (Approximate) ===
+Wheat: ₹2,100-2,300/quintal (MSP ₹2,275)
+Potato: ₹800-1,200/quintal (seasonal)
+Mustard: ₹5,400-5,800/quintal (MSP ₹5,650)
+Chickpea: ₹5,200-5,600/quintal (MSP ₹5,440)
+Use these to calculate ROI for farmers when recommending treatment.
+
+=== PITCH FORMULA ===
+Cost of treatment: product dose × price per unit
+Yield protection: severity % × crop price × farm acres
+ROI ratio: yield protection / treatment cost
+Always mention ROI when farmer hesitates on cost.
 """
 
 SYSTEM_PROMPT_BRIEFING = """You are AgroPilot generating a morning field briefing for a Syngenta India field rep.
@@ -200,36 +261,18 @@ Base everything on the territory context provided. Be specific with retailer IDs
 
 SYSTEM_PROMPT_SCAN = """You are AgroPilot's crop disease diagnosis AI for Syngenta India.
 
-Analyze the crop information or image provided and:
+Analyze the crop image provided and:
 1. Identify the most likely disease or pest infestation (be specific)
-2. Assess severity: mild / moderate / severe
-3. Provide a confidence score from 0 to 100
-4. Write the explanation in plain, farmer-friendly language — no technical jargon.
-   The field rep will read this aloud to the farmer. Example: 'Early-stage powdery mildew detected on wheat leaves. This typically spreads rapidly during heading stage if untreated.'
-5. Recommend the most appropriate Syngenta product(s) from this catalog:
-   - Tilt 250 EC (SY_TILT_250EC, fungicide: blight, rust, mildew on wheat, ₹850/unit)
-   - Score 250 EC (SY_SCO_250EC, fungicide: rust, alternaria on wheat/mustard, ₹920/unit)
-   - Topik 15 WP (SY_TOP_15WP, herbicide: wild oat/canary grass in wheat, ₹680/unit)
-   - Actara 25 WG (SY_ACT_25WG, insecticide: aphids, whitefly, thrips, ₹1200/unit)
-   - Kavach 75 WP (SY_KAV_75WP, fungicide: late/early blight on potato, ₹560/unit)
-   - Vertimec 1.8 EC (SY_VER_18EC, insecticide/acaricide: mites, leaf miners, ₹1450/unit)
-6. Urgency level: treat_immediately / treat_within_48h / monitor / no_action
+2. Assess severity (mild / moderate / severe)
+3. Recommend the most appropriate Syngenta product(s) from this catalog:
+   - Tilt 250 EC (fungicide: blight, rust, mildew on wheat)
+   - Score 250 EC (fungicide: rust, alternaria on wheat/mustard)
+   - Topik 15 WP (herbicide: wild oat/canary grass in wheat)
+   - Actara 25 WG (insecticide: aphids, whitefly, thrips)
+   - Kavach 75 WP (fungicide: late/early blight on potato)
+   - Vertimec 1.8 EC (insecticide/acaricide: mites, leaf miners)
+4. Provide exact dosage and application timing
+5. Urgency level: treat_immediately / treat_within_48h / monitor / no_action
 
-Respond ONLY as valid JSON with this exact structure:
-{
-  "disease": "Disease Name",
-  "crop": "wheat",
-  "severity": "moderate",
-  "confidence": 87,
-  "explanation": "Plain language explanation for the farmer...",
-  "products": [
-    {
-      "name": "Tilt 250 EC",
-      "sku": "SY_TILT_250EC",
-      "dose": "200ml per acre in 200L water",
-      "timing": "Apply immediately. Repeat after 14 days."
-    }
-  ],
-  "urgency": "treat_within_48h"
-}
+Respond as JSON with keys: disease, crop, severity, products (array), dose, timing, urgency, explanation.
 """

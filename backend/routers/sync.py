@@ -1,38 +1,19 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from typing import List, Any
-from datetime import datetime
+from typing import Any
 
-router = APIRouter(prefix="/api/sync", tags=["sync"])
+router = APIRouter(prefix='/api/sync', tags=['sync'])
 
 
 class SyncPushRequest(BaseModel):
-    items: List[Any] = []
-    rep_id: str = "REP_0001"
+    items: list[Any] = []
 
 
-@router.post("/push")
-def sync_push(req: SyncPushRequest):
-    results = []
-    for item in req.items:
-        results.append({
-            "offline_id": item.get("offline_id", "unknown") if isinstance(item, dict) else "unknown",
-            "status": "success",
-            "synced_at": datetime.utcnow().isoformat(),
-        })
+@router.post('/push')
+def sync_push(body: SyncPushRequest):
+    """Accept offline-queued items from the field app and acknowledge receipt."""
     return {
-        "synced": len(results),
-        "failed": 0,
-        "results": results,
-        "server_time": datetime.utcnow().isoformat(),
-    }
-
-
-@router.get("/status")
-def sync_status(rep_id: str = "REP_0001"):
-    return {
-        "rep_id": rep_id,
-        "pending": 0,
-        "last_sync": datetime.utcnow().isoformat(),
-        "status": "online",
+        'success': True,
+        'synced': len(body.items),
+        'message': f'Synced {len(body.items)} item{"s" if len(body.items) != 1 else ""}',
     }

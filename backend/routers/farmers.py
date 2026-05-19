@@ -1,7 +1,16 @@
-from fastapi import APIRouter, Query
+import math
+from fastapi import APIRouter, Query, HTTPException
 from data import loader
 
 router = APIRouter(prefix="/api/farmers", tags=["farmers"])
+
+
+def _safe_float(v: object, default: float = 0.0) -> float:
+    try:
+        f = float(v)  # type: ignore[arg-type]
+        return default if (math.isnan(f) or math.isinf(f)) else f
+    except (ValueError, TypeError):
+        return default
 
 
 def enrich_grower(g: dict) -> dict:
@@ -9,12 +18,12 @@ def enrich_grower(g: dict) -> dict:
     stages = cal.get("stages", [])
     return {
         "id": g["grower_id"],
-        "district": g.get("district", ""),
-        "tehsil": g.get("tehsil", ""),
-        "state": g.get("state", ""),
-        "age": g.get("grower_age", ""),
-        "gender": g.get("gender", ""),
-        "farm_size_acres": round(float(g.get("grower_farm_size", 0)), 1),
+        "district": str(g.get("district", "") or ""),
+        "tehsil": str(g.get("tehsil", "") or ""),
+        "state": str(g.get("state", "") or ""),
+        "age": int(_safe_float(g.get("grower_age", 0))),
+        "gender": str(g.get("gender", "") or ""),
+        "farm_size_acres": round(_safe_float(g.get("grower_farm_size")), 1),
         "language": g.get("language", "Hindi"),
         "device_type": g.get("device_type", "smartphone"),
         "crop": cal.get("crop", "wheat"),
@@ -37,8 +46,8 @@ def list_farmers(rep_id: str = Query(default="REP_0001"), limit: int = 20):
 def get_farmer(farmer_id: str):
     growers = loader.get("growers")
     if growers.empty:
-        return {"error": "No data"}
+        raise HTTPException(status_code=503, detail="Data not loaded")
     rows = growers[growers["grower_id"] == farmer_id]
     if rows.empty:
-        return {"error": "Farmer not found"}
+        raise HTTPException(status_code=404, detail=f"Farmer {farmer_id!r} not found")
     return enrich_grower(rows.iloc[0].to_dict())
