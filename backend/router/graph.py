@@ -88,11 +88,35 @@ MOCK_GRAPH_DATA = {
 }
 
 import json
+import requests
+from data_utils import get_reps_territory
 
 @router.get("/{rep_id}", response_model=GraphResponse)
 async def get_graph(rep_id: str):
     """Returns the reasoning graph representation for the AI recommendations."""
     from config import llm
+    
+    # Fetch real weather from Open-Meteo (example coordinates for India)
+    weather_info = "Weather data unavailable"
+    try:
+        weather_res = requests.get("https://api.open-meteo.com/v1/forecast?latitude=20.59&longitude=78.96&current_weather=true")
+        if weather_res.status_code == 200:
+            w_data = weather_res.json().get("current_weather", {})
+            temp = w_data.get("temperature")
+            wind = w_data.get("windspeed")
+            weather_info = f"Temp: {temp}C, Wind: {wind}km/h"
+    except Exception as e:
+        pass
+
+    # Fetch territory data
+    territory = get_reps_territory()
+    territory_info = ""
+    if not territory.empty:
+        rep_data = territory[territory['rep_id'] == rep_id]
+        if not rep_data.empty:
+            row = rep_data.iloc[0]
+            territory_info = f"District: {row.get('district')}, State: {row.get('state')}"
+
     if not llm:
         return GraphResponse(
             rep_id=rep_id,
@@ -103,7 +127,12 @@ async def get_graph(rep_id: str):
         
     prompt = f"""
 You are the AgroPilot reasoning engine. The user (rep_id: {rep_id}) is viewing their territory's AI recommendation graph.
-Generate a valid JSON object matching exactly this schema representing a realistic agricultural scenario (e.g. disease detected, product recommended):
+Real-world context:
+- Weather: {weather_info}
+- Territory: {territory_info}
+
+Based on this context, generate a valid JSON object matching exactly this schema representing a realistic agricultural scenario (e.g. disease detected, product recommended).
+You MUST generate EXACTLY 7 nodes in the "nodes" array to represent a comprehensive reasoning graph.
 {{
     "recommendation": {{"product": "String", "product_sku": "String", "confidence": Int (0-100)}},
     "nodes": [

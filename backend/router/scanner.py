@@ -14,15 +14,20 @@ class ScanResponse(BaseModel):
     confidence: int
     recommendation: str
 
-@router.post("/analyze", response_model=ScanResponse)
-async def analyze_crop(crop_type: str = Form(...), image: UploadFile = File(...)):
+@router.post("", response_model=ScanResponse)
+async def analyze_crop(
+    crop_hint: str = Form(...),
+    rep_id: str = Form(None),
+    farm_size_acres: str = Form(None),
+    image: UploadFile = File(...)
+):
     try:
         # 1. Read and encode the image
         image_bytes = await image.read()
         b64_image = base64.b64encode(image_bytes).decode("utf-8")
         
         # 2. Use Groq's Vision Model
-        prompt = f"""Analyze this image of a {crop_type} crop. Identify any diseases. 
+        prompt = f"""Analyze this image of a {crop_hint} crop. Identify any diseases. 
         Return ONLY a valid JSON object with the following exact keys:
         'diagnosis' (string), 'severity' ('Low', 'Moderate', or 'High'), 'confidence' (integer 0-100), and 'recommendation' (string).
         Do not include markdown blocks or any other text."""
@@ -40,7 +45,7 @@ async def analyze_crop(crop_type: str = Form(...), image: UploadFile = File(...)
         # 3. Invoke the model and parse the JSON
         vision_llm = ChatGroq(
             groq_api_key=os.getenv("GROQ_API_KEY"),
-            model_name="llama-3.2-90b-vision-preview",
+            model_name="meta-llama/llama-4-scout-17b-16e-instruct",
             temperature=0
         )
         response = vision_llm.invoke([message]).content.strip()
@@ -62,7 +67,7 @@ async def analyze_crop(crop_type: str = Form(...), image: UploadFile = File(...)
         print(f"Vision error: {e}")
         # Fallback response so the UI doesn't break
         return ScanResponse(
-            diagnosis=f"Potential {crop_type} Issue Detected",
+            diagnosis=f"Potential {crop_hint} Issue Detected",
             severity="Moderate",
             confidence=85,
             recommendation="Apply preventative fungicide within 48 hours."

@@ -10,6 +10,12 @@ import config
 from router.chat import router as chat_router
 from router.auth import router as auth_router
 from router.graph import router as graph_router
+from router.briefing import router as briefing_router
+from router.alerts import router as alerts_router
+from router.route import router as route_router
+from router.calculator import router as calculator_router
+from router.manager import router as manager_router
+from router.entities import router as entities_router
 
 app = FastAPI(
     title="Agri-Edge LangGraph Co-Pilot",
@@ -31,6 +37,12 @@ app.include_router(chat_router)
 app.include_router(auth_router)
 app.include_router(graph_router)
 app.include_router(scanner_router)
+app.include_router(briefing_router)
+app.include_router(alerts_router)
+app.include_router(route_router)
+app.include_router(calculator_router)
+app.include_router(manager_router)
+app.include_router(entities_router)
 
 
 if __name__ == "__main__":

@@ -2,20 +2,19 @@
 
 AI-guided field force intelligence platform for agricultural sales reps and managers.
 
-## Repo Structure
+## 📁 Repo Structure
 
-```
+```text
 agropilot-frontend/
-├── frontend/     # Original mobile app (React Native)
-├── web/          # Web app (React + Vite + TypeScript)
+├── frontend/     # Web app (React + Vite + TypeScript)
 ├── backend/      # API server (FastAPI + Python)
-├── data/         # Dataset CSVs
+├── data/         # Dataset CSVs (Shared data)
 └── designs/      # HTML/JSX design prototypes
 ```
 
 ---
 
-## Running the Backend
+## 🚀 Running the Backend
 
 **Requirements:** Python 3.10+
 
@@ -23,11 +22,12 @@ agropilot-frontend/
 cd backend
 
 # Create and activate virtual environment
-python -m venv venv
+python -m venv .agri_env
+
 # Windows:
-venv\Scripts\activate
+.agri_env\Scripts\activate
 # Mac/Linux:
-source venv/bin/activate
+source .agri_env/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -37,20 +37,20 @@ cp .env.example .env
 # Edit .env and add your GROQ_API_KEY
 
 # Start server
-uvicorn main:app --reload
+python -m uvicorn main:app --reload
 ```
 
-API runs at `http://localhost:8000`
-Interactive docs at `http://localhost:8000/docs`
+- **API runs at:** `http://localhost:8000`
+- **Interactive docs:** `http://localhost:8000/docs`
 
 ---
 
-## Running the Web Frontend
+## 💻 Running the Web Frontend
 
 **Requirements:** Node.js 18+
 
 ```bash
-cd web
+cd frontend
 
 # Install dependencies
 npm install
@@ -59,25 +59,25 @@ npm install
 npm run dev
 ```
 
-App runs at `http://localhost:5173`
+- **App runs at:** `http://localhost:5173`
 
-> By default the frontend connects to `http://localhost:8000`.
-> To override, set `VITE_API_URL` in a `.env` file inside `web/`.
+> **Note:** By default, the frontend connects to `http://localhost:8000`. 
+> To override this, set `VITE_API_URL` in a `.env` file inside `frontend/`.
 
 ---
 
-## Environment Variables
+## ⚙️ Environment Variables
 
 ### Backend (`backend/.env`)
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GROQ_API_KEY` | Yes | Groq API key for LLM features |
+| `GROQ_API_KEY` | **Yes** | Groq API key for LLM features (Chat, Scanner, Graph) |
 | `JWT_SECRET` | No | JWT signing secret (default: dev value) |
 | `CSV_DIR` | No | Path to data folder (default: `../data/`) |
 | `FRONTEND_URL` | No | CORS origin (default: `http://localhost:5173`) |
 
-### Web Frontend (`web/.env`)
+### Web Frontend (`frontend/.env`)
 
 | Variable | Required | Description |
 |----------|----------|-------------|
@@ -85,7 +85,7 @@ App runs at `http://localhost:5173`
 
 ---
 
-## Demo Credentials
+## 🔑 Demo Credentials
 
-Use any `rep_id` from `data/reps_territory.csv` as the username.
-Password: `password123` (dev mode)
+Use any `rep_id` from `backend/data/reps_territory.csv` as the username.  
+**Password:** `password123` (dev mode)
