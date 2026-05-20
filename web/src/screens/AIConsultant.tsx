@@ -564,7 +564,11 @@ export default function AIConsultant() {
     }
 
     // Fallback — plain text (greetings, short conversational replies)
-    return { text: raw || 'Got it.' }
+    // Still attach suggestion chips so user knows what to ask next
+    return {
+      text: raw || 'Got it.',
+      followUps: ["Today's recommendations", "Who should I visit?", "Check stock levels", "Any disease alerts?"],
+    }
   }
 
   const sendMessage = async (text?: string) => {

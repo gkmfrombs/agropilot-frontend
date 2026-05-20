@@ -29,21 +29,26 @@ def chat(system: str, messages: list[dict], max_tokens: int = 1024) -> str:
     return response.choices[0].message.content or ""
 
 
-def chat_stream(system: str, messages: list[dict], max_tokens: int = 2048):
+def chat_stream(system: str, messages: list[dict], max_tokens: int = 1024):
     """Yields text chunks for SSE streaming."""
     client = get_client()
-    all_messages = [{"role": "system", "content": system}] + messages
-    stream = client.chat.completions.create(
-        model=settings.chat_model,
-        messages=all_messages,
-        max_tokens=max_tokens,
-        temperature=0.4,
-        stream=True,
-    )
-    for chunk in stream:
-        delta = chunk.choices[0].delta
-        if delta and delta.content:
-            yield delta.content
+    # Keep only last 6 messages to avoid token overflow on free-tier Groq
+    trimmed = messages[-6:] if len(messages) > 6 else messages
+    all_messages = [{"role": "system", "content": system}] + trimmed
+    try:
+        stream = client.chat.completions.create(
+            model=settings.chat_model,
+            messages=all_messages,
+            max_tokens=max_tokens,
+            temperature=0.4,
+            stream=True,
+        )
+        for chunk in stream:
+            delta = chunk.choices[0].delta
+            if delta and delta.content:
+                yield delta.content
+    except Exception as e:
+        yield f"Sorry, I hit a limit. Please try again in a moment. ({type(e).__name__})"
 
 
 def vision_chat(system: str, image_b64: str, prompt: str, media_type: str = "image/jpeg") -> str:
