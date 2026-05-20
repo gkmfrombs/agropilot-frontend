@@ -1,84 +1,101 @@
 # AgroPilot — Presentation Script
-**Team:** Aaysha · Vinshi · Bhargavi · Venkatesh · Guddu · Amritha
+**Team:** Aaysha · Vinshi · Venkatesh · Guddu · Bhargavi · Amritha
 **Time:** ~10 minutes
 
 ---
 
-## AAYSHA — Problem (1.5 min)
+## AAYSHA — Opening + Problem (1.5 min)
 
-"Syngenta has 500+ field reps across India. Every morning they wake up with no idea which retailer ran out of stock, which farmer is ready to buy, or which crop is about to get hit by disease. They make decisions on gut feel and miss opportunities worth lakhs.
+"Good morning! Thank you to Syngenta and IITM for this hackathon. We are Team AgroPilot.
 
-We asked — what if every rep had an AI that knew their entire territory and told them exactly what to do before they left home?
+Syngenta has 500+ field reps across India. Every morning they wake up with no idea which retailer ran out of stock, which farmer is ready to buy, or which crop is about to get hit by disease. They make decisions on gut feel and miss sales worth lakhs.
 
-That's AgroPilot. I'll hand to Vinshi to show you the app."
-
----
-
-## VINSHI — Rep App Demo (2.5 min)
-
-"When the rep opens AgroPilot, they see a **Morning Briefing** — generated fresh from their real territory data. Priority visits, disease alerts, top product to pitch. Not generic — specific to their area.
-
-*(show Morning Briefing → Route Planning)*
-
-Route Planning shows the optimal visit order — retailers with stockouts and farmers with urgent crop needs come first.
-
-*(show Visit Copilot)*
-
-Before each visit, the **Visit Copilot** card shows live stock levels, nearby farmers who clicked the WhatsApp campaign, weather risk, and ready-made talking points.
-
-*(show Crop Scanner)*
-
-If a farmer shows a diseased crop, the rep scans it. In 5 seconds — disease name, severity, exact Syngenta product, dose, and ROI for the farmer. No agronomy degree needed.
-
-Bhargavi will show the manager side."
+We built AgroPilot — an AI copilot that knows the rep's entire territory and tells them exactly what to do, before they leave home. I'll hand to Vinshi who will walk you through the app."
 
 ---
 
-## BHARGAVI — Manager Console (1.5 min)
+## VINSHI — Tour + First 2 Screens (2 min)
 
-"Managers get their own dashboard.
+"Thank you Aaysha. Let me open the app.
 
-*(show Territory Heatmap → KPI Dashboard → Rep Performance)*
+*(open app — onboarding tour starts automatically)*
 
-Territory heatmap shows coverage gaps and stockout clusters in real time. KPI dashboard tracks visits, revenue, and AI recommendation acceptance rate. Rep performance ranks every rep by a composite field score — not just visit count.
+When a new user opens AgroPilot for the first time, they get a guided tour — it walks through every screen so the rep knows exactly what they have. This is the onboarding experience.
 
-From the real dataset — 3 confirmed stockouts that reps hadn't acted on, 14% of retailers not visited in 14+ days. AgroPilot surfaces all of this before the manager has to ask. Over to Venkatesh for the tech."
+*(tour ends — login as arjun)*
+
+Now logged in as Arjun, a field rep in Pune.
+
+**Screen 1 — Morning Briefing.**
+*(show Morning Briefing)*
+This is generated fresh every morning from Arjun's real territory data — priority retailers to visit, crop disease risk windows, top product to pitch today. Not generic — specific to his tehsil.
+
+**Screen 2 — Route Planning.**
+*(show Route Planning)*
+The app calculates the best visit order for the day. Retailers with stockouts come first. Retailers not visited in 14+ days are flagged. Arjun doesn't decide where to go — AgroPilot does. I'll pass to Venkatesh."
 
 ---
 
-## VENKATESH — Tech Stack (2 min)
+## VENKATESH — Tech Stack + Chatbot + Crop Scanner + Reasoning Graph (3 min)
 
-"Backend is **FastAPI** with Python — async, auto-documented, Pydantic validated. AI inference runs on **Groq** — Llama-3.3-70b for chat, Llama-4-Scout for vision. Fast enough for real-time streaming.
+"Thanks Vinshi. Let me show you three features I'm most proud of — and quickly explain how the whole system is built.
 
-Frontend is **React + TypeScript + Vite**. Chat uses Server-Sent Events — tokens stream live, no polling. Five Indian languages supported — Hindi, Marathi, Tamil, Telugu, English.
+**Tech:** FastAPI backend, React TypeScript frontend, Groq for AI inference — Llama-3.3-70b for chat, Llama-4-Scout for vision. 8 CSV datasets, 55,000+ rows loaded in memory. JWT auth, Server-Sent Events for streaming. Deployed on Render and Vercel.
 
-Data layer: 8 CSV datasets, 55,000+ rows loaded into memory at startup. No database required for the demo. Auth is JWT, 60-minute tokens, role-based — rep vs manager. Dockerized backend on Render, frontend on Vercel. Guddu will explain the AI layer."
+**The AI Chatbot.**
+*(open AIConsultant screen)*
+This is not a generic chatbot. Ask it something like 'who should I visit today?' — it gives a structured field intel card: specific retailers, reasons, crop stage context — all from Arjun's real territory data. Ask about weather or disease risk — different format, relevant data.
+The responses stream live token by token. The chat history is saved across sessions so the rep can always refer back.
+
+**Crop Scanner.**
+*(open CropScanner, scan or upload image)*
+Farmer shows Arjun a diseased leaf. Arjun opens the scanner, takes a photo. In 5 seconds — disease name, severity, exact Syngenta product to recommend, dose per acre, and yield loss risk if untreated. Works for wheat, potato, tomato, mustard, 15+ crops.
+
+**Reasoning Graph.**
+*(open ReasoningGraph)*
+This is my favourite screen. Every AI recommendation has a 'why' — this graph shows the 7 signals the AI used: crop stage, weather, inventory status, visit history, WhatsApp campaign signals, and more. Full explainability — not a black box. Over to Guddu."
 
 ---
 
-## GUDDU — AI Intelligence (2 min)
+## GUDDU — Manager Console (1.5 min)
 
-"Three layers of AI — all active on every chat query.
+"Thanks Venkatesh. Managers get their own view.
 
-**Layer 1 — Vector RAG.** Every question runs a semantic search over 2,600 agronomic knowledge documents using sentence-transformers, locally. Top 6 relevant chunks go into the LLM context. That's why answers cite real spray timings and disease windows — not hallucinations.
+*(login as manager or switch to manager console)*
 
-**Layer 2 — CSV GraphRAG.** We simulate graph database traversal using pandas multi-hop joins across all 8 datasets. One query finds: which retailers in this rep's territory are out of stock AND have nearby farmers who clicked a WhatsApp campaign? Three hops, scored, injected into the LLM context.
+**Territory Heatmap** — at a glance, which territories have coverage gaps and stockout clusters.
 
-**Layer 3 — Vision AI.** Crop scanner sends the image to Llama-4-Scout via Groq. Returns structured JSON — disease, severity, confidence, Syngenta product, dose, yield loss risk. Handles 15+ crops.
+**KPI Dashboard** — total visits, revenue, AI recommendation acceptance rate — how often reps follow the AI's advice.
 
-All three layers combine into one system prompt. The LLM sees the full picture. Amritha will close."
+**Rep Performance** — every rep ranked by field score. Not just visit count — quality of visits, stockout resolution, AI actions taken.
+
+**Campaign Performance** — full funnel: WhatsApp impressions to landing page to lead form. Closes the loop between marketing and field sales.
+
+From the real dataset — 3 stockouts reps hadn't acted on, 14% of retailers not visited in 14+ days. Manager sees all of it in one dashboard. Bhargavi will explain the AI layer."
+
+---
+
+## BHARGAVI — AI Layer (1.5 min)
+
+"Thanks Guddu. Three layers of AI run on every chat query.
+
+**Layer 1 — Vector RAG.** Every question triggers a semantic search over 2,600 agronomic documents using sentence-transformers, running locally. Top 6 relevant chunks — spray timings, disease windows, product doses — go into the LLM context before it answers. No hallucinations.
+
+**Layer 2 — CSV GraphRAG.** We simulate graph database traversal using pandas multi-hop joins. One query finds: which retailers in this rep's territory are out of stock AND have nearby farmers who clicked a WhatsApp campaign? Three hops, scored by urgency, injected into the LLM context automatically.
+
+**Layer 3 — Vision AI.** Crop scanner sends the image to Llama-4-Scout via Groq — returns disease, severity, confidence score, Syngenta product, dose, and yield loss risk. All three layers combine into one system prompt. The LLM sees the full territory picture on every single query. Amritha will close."
 
 ---
 
 ## AMRITHA — Impact + Close (1 min)
 
-"Real scenarios from the data:
+"Thank you Bhargavi.
 
-A rep finds a retailer out of Kavach 75 WP — a stockout the system flagged. Restocked, 40 units sold. A farmer shows a diseased leaf, scanner says moderate early blight, rep gives the exact treatment — farmer saves ₹8 for every ₹1 spent. A manager spots a stockout cluster in Jalgaon on the heatmap and acts before the rep even visits.
+Three real scenarios from the data: A rep finds a stockout the system flagged — restocked, 40 units sold. A farmer shows a diseased leaf — scanner gives the exact treatment, farmer saves ₹8 for every ₹1 spent. A manager spots a stockout cluster in Jalgaon on the heatmap and acts before the reps even visit.
 
-What we built: 17 screens, 20+ API endpoints, live right now. Three AI layers on real data. Five languages. Full manager console.
+What we built: 17 screens, 20+ API endpoints, live right now. Three AI layers on real data. Five Indian languages. Full manager console.
 
-Log in with username **arjun**, password **agropilot2026** and try it.
+Log in — username **arjun**, password **agropilot2026** — try it yourself.
 
 Thank you."
 
@@ -86,11 +103,11 @@ Thank you."
 
 ## Q&A CHEAT SHEET
 
-| Question | Who answers |
-|----------|-------------|
-| How is this different from a CRM? | Venkatesh — AI + real-time, not just data entry |
+| Question | Who |
+|----------|-----|
+| Different from a CRM? | Venkatesh — AI + real-time action, not just data entry |
 | Offline support? | Venkatesh — sync center, local cache |
-| Scanner accuracy? | Guddu — Llama-4-Scout, confidence % shown |
+| Scanner accuracy? | Bhargavi — Llama-4-Scout, confidence % shown |
 | Scale to 500 reps? | Venkatesh — stateless JWT, CSVs → Postgres in production |
-| Revenue model? | Bhargavi — SaaS per-rep licensing to Syngenta |
-| Is data real? | Bhargavi — yes, actual hackathon dataset, 55k rows |
+| Revenue model? | Guddu — SaaS per-rep licensing |
+| Is data real? | Guddu — yes, actual hackathon dataset, 55k rows |
