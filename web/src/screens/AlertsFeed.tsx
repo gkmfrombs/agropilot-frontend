@@ -5,12 +5,13 @@ import { PulseDot, Eyebrow, TopStrip, BottomNav, VoiceFAB, IChev, IAlertTriangle
 import { api } from '../services/api';
 
 const IBox = (p: any) => <Icon {...p} d={<><path d="M21 8 12 13 3 8" /><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="M12 13v9" /></>} />;
+const IBell = (p: any) => <Icon {...p} d={<><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></>} />;
 const ITrend = (p: any) => <Icon {...p} d={<><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></>} />;
 const IFire = (p: any) => <Icon {...p} d={<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />} />;
 const IShield = (p: any) => <Icon {...p} d={<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></>} />;
 const IScan = (p: any) => <Icon {...p} d={<><path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" /><line x1="7" y1="12" x2="17" y2="12" /></>} />;
 
-const ALERT_ICONS: Record<string, (p: any) => JSX.Element> = {
+const ALERT_ICONS: Record<string, (p: any) => React.ReactElement> = {
     stockout: IBox,
     demand: ITrend,
     campaign: IFire,
