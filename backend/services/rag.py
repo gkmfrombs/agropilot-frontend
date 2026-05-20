@@ -322,7 +322,11 @@ def query_rag(query: str, n: int = 6) -> str:
     Lazy-initializes RAG on first call to keep startup memory low.
     """
     if not _initialized or _embeddings is None or not _docs:
-        init_rag()
+        try:
+            init_rag()
+        except Exception as e:
+            print(f"[RAG] init failed, running without vector RAG: {e}")
+            return ''
     if not _initialized or _embeddings is None or not _docs:
         return ''
     q_vec = _embed([query])

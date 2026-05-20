@@ -3,8 +3,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from services.claude import chat_stream
 from services.context import build_rep_context, SYSTEM_PROMPT_CHAT
-from services.rag import query_rag
 from services.graphrag_queries import get_graph_context_for_chat
+from config import get_settings
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -29,7 +29,13 @@ def _build_system(req: ChatRequest) -> str:
     last_user_msg = next(
         (m.content for m in reversed(req.messages) if m.role == 'user'), ''
     )
-    rag_chunks = query_rag(last_user_msg, n=6) if last_user_msg else ''
+    rag_chunks = ''
+    if get_settings().enable_rag and last_user_msg:
+        from services.rag import query_rag
+        try:
+            rag_chunks = query_rag(last_user_msg, n=6)
+        except Exception:
+            rag_chunks = ''
     graph_context = get_graph_context_for_chat(req.rep_id)
 
     parts = [SYSTEM_PROMPT_CHAT, territory_context]

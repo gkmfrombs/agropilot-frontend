@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     neo4j_uri: str = ""
     neo4j_user: str = "neo4j"
     neo4j_pass: str = ""
+    enable_rag: bool = False  # set True only if instance has >1GB RAM
 
     class Config:
         env_file = ".env"
