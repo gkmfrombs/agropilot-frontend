@@ -38,7 +38,7 @@ export const IShare = (p: IconProps) => <Icon {...p} d={<><circle cx="18" cy="5"
 export const ITarget = (p: IconProps) => <Icon {...p} d={<><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></>} />;
 export const IBarChart = (p: IconProps) => <Icon {...p} d={<><line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" /></>} />;
 export const IMoon = (p: IconProps) => <Icon {...p} d={<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />} />;
-export const ISun = (p: IconProps) => <Icon {...p} d={<><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></>} />;
+export const ISun = (p: IconProps) => <Icon {...p} d={<><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></>} />;
 export const IScarecrow = (p: IconProps) => <Icon {...p} d={<>
     <line x1="7" y1="8.5" x2="17" y2="8.5" />
     <path d="M9 8.5V6c0-.9.7-1.5 3-1.5s3 .6 3 1.5v2.5" />
@@ -172,11 +172,11 @@ export function BottomNav() {
     const location = useLocation();
     const { t } = useTranslation()
     const items = [
-        { id: 'home', label: t('nav.home'), I: IHome, to: '/' },
-        { id: 'route', label: t('nav.route'), I: IMap, to: '/route' },
-        { id: 'chat', label: t('nav.chat'), I: IChat, to: '/chat', primary: true },
-        { id: 'sync', label: t('nav.sync'), I: ISync, to: '/sync' },
-        { id: 'me', label: t('nav.profile'), I: IUser, to: '/me' },
+        { id: 'home',  label: t('nav.home'),    I: IHome, to: '/' },
+        { id: 'route', label: t('nav.route'),   I: IMap,  to: '/route' },
+        { id: 'chat',  label: t('nav.chat'),    I: IChat, to: '/chat', primary: true },
+        { id: 'sync',  label: t('nav.sync'),    I: ISync, to: '/sync' },
+        { id: 'me',    label: t('nav.profile'), I: IUser, to: '/me' },
     ];
     return (
         <div className="bottom-nav-wrap">

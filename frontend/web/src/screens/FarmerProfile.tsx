@@ -1,6 +1,6 @@
-﻿// import React from 'react';
+﻿import React from 'react';
 import { Link } from 'react-router-dom';
-import { IChev, IPhone, INav, TopStrip, BottomNav, VoiceFAB, ICalendar } from '../components/Shared';
+import { IChev, IPhone, INav, TopStrip, BottomNav, VoiceFAB, ICalendar, Eyebrow } from '../components/Shared';
 
 const PHOTO_FARMER = 'https://images.unsplash.com/photo-1605000797499-95a51c5269ae?w=200&q=80&auto=format&fit=crop';
 
