@@ -264,7 +264,7 @@ function AIMessageCard({ message }: { message: Message }) {
 
       {/* Label */}
       <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-        {message.bullets ? 'Recommendation' : 'AgroPilot'}
+        {message.confidence ? 'Recommendation' : message.bullets ? 'Field Intel' : 'AgroPilot'}
       </div>
 
       {/* Headline or markdown stream or loading dots */}
