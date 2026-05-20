@@ -525,10 +525,15 @@ export default function AIConsultant() {
     const roiMatch = raw.match(/>\s*\*{0,2}ROI[^:]*:\*{0,2}\s*(.+)/i)
     const roi = roiMatch ? roiMatch[1].trim() : null
 
-    // Detect response type to pick contextual follow-ups
+    // Detect response type to pick contextual follow-ups.
+    // isCropDisease is ONLY true when the LLM explicitly used the structured
+    // "**Confidence: X%** · Product:" meta-line AND included an ROI blockquote.
+    // This prevents general farming-advice or visit-planning replies from being
+    // misclassified as crop-disease cards just because a product name appears.
     const isWeather = /weather|forecast|temperature|humidity|rain|wind/i.test(raw)
     const isInventory = /RTL_|retailer.*stock|inventory|out.of.stock/i.test(raw)
-    const isCropDisease = !!(product || roi) || /dose:|kavach|tilt|actara|score|fungicide|insecticide/i.test(raw)
+    const hasCropFormat = /\*\*Confidence:\s*\d+%\*\*\s*[·•]\s*Product:/i.test(raw)
+    const isCropDisease = hasCropFormat && !!roi
     const isVisit = /visit|who.*meet|grower|route|stop/i.test(raw)
 
     const followUps = isCropDisease
@@ -543,10 +548,11 @@ export default function AIConsultant() {
 
     // Build card if we have a title OR at least 2 bullets
     if (title || bulletLines.length >= 2) {
-      const extraBullets = [
+      // Only append Product/ROI summary bullets for confirmed crop-disease responses
+      const extraBullets: string[] = isCropDisease ? [
         product && !bulletLines.some(b => b.toLowerCase().includes('product')) ? `Product: ${product}` : null,
         roi && !bulletLines.some(b => b.toLowerCase().includes('roi')) ? `ROI: ${roi}` : null,
-      ].filter(Boolean) as string[]
+      ].filter(Boolean) as string[] : []
 
       return {
         text: headline || title || 'AgroPilot',
