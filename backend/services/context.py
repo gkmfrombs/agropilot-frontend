@@ -81,113 +81,68 @@ PRODUCTS_CATALOG = {
 
 
 def build_rep_context(rep_id: str) -> str:
-    """Build comprehensive context string for Claude about a rep's territory."""
+    """Build compact territory context for Claude — optimised for free-tier token limits."""
     rep = loader.get_rep(rep_id)
-    retailers = loader.get_retailers_for_rep(rep_id, limit=10)
-    growers = loader.get_growers_for_rep(rep_id, limit=8)
-    visits = loader.get_visit_history_for_rep(rep_id, limit=10)
-    stockout_alerts = loader.get_stockout_alerts()[:5]
+    retailers = loader.get_retailers_for_rep(rep_id, limit=5)
+    growers = loader.get_growers_for_rep(rep_id, limit=4)
+    visits = loader.get_visit_history_for_rep(rep_id, limit=5)
+    stockout_alerts = loader.get_stockout_alerts()[:3]
 
-    # Derive district for weather lookup from rep record, fall back to mock
     district = (rep.get("district", "") if rep else "") or "Pune"
     weather_data = get_weather(district)
+    # Keep only key weather fields to save tokens
+    weather_compact = {k: weather_data.get(k) for k in ("temp_c", "humidity_pct", "rainfall_7d_mm", "risk_flags") if k in weather_data}
 
-    # Summarize growers
     grower_summary = []
-    for g in growers[:6]:
+    for g in growers:
         cal = g.get("grower_crop_calendar", {})
-        crop = cal.get("crop", "unknown")
         stages = cal.get("stages", [])
-        current_stage = stages[-1]["stage"] if stages else "unknown"
         grower_summary.append({
             "id": g["grower_id"],
-            "district": g.get("district", ""),
             "tehsil": g.get("tehsil", ""),
-            "crop": crop,
-            "current_stage": current_stage,
-            "farm_size_acres": round(float(g.get("grower_farm_size", 0)), 1),
-            "age": g.get("grower_age", ""),
-            "scanned_product": g.get("product_name", None),
+            "crop": cal.get("crop", "unknown"),
+            "stage": stages[-1]["stage"] if stages else "unknown",
+            "acres": round(float(g.get("grower_farm_size", 0)), 1),
         })
 
-    # Summarize retailer inventory (spot-check a few)
     retailer_inv_summary = []
-    for r in retailers[:5]:
+    for r in retailers[:3]:
         inv = loader.get_inventory_for_retailer(r["retailer_id"])
-        stockouts = [i for i in inv if i["sku_qty"] == 0]
-        low_stock = [i for i in inv if 0 < i["sku_qty"] <= 5]
+        stockouts = [i["sku_name"] for i in inv if i["sku_qty"] == 0][:2]
+        low = [i["sku_name"] for i in inv if 0 < i["sku_qty"] <= 5][:2]
         retailer_inv_summary.append({
-            "retailer_id": r["retailer_id"],
+            "id": r["retailer_id"],
             "tehsil": r.get("tehsil", ""),
-            "district": r.get("district", ""),
-            "stockouts": [s["sku_name"] for s in stockouts[:3]],
-            "low_stock": [s["sku_name"] for s in low_stock[:3]],
+            "stockouts": stockouts,
+            "low": low,
         })
 
-    # Recent visit pattern
     products_pitched = {}
     for v in visits:
         p = v.get("product_recommended", "")
         if p:
             products_pitched[p] = products_pitched.get(p, 0) + 1
 
-    # WhatsApp click signals for this territory
     wa_signals: dict = {}
     wa_df = loader.get("whatsapp")
     if wa_df is not None and not wa_df.empty:
-        rep_tehsils: list = []
-        if rep:
-            rep_tehsils = rep.get("tehsil_list", [])
-        if rep_tehsils:
-            mask = wa_df["grower_id"].isin(
-                loader.get("growers")[
-                    loader.get("growers")["tehsil"].isin(rep_tehsils)
-                ]["grower_id"].tolist()
-                if loader.get("growers") is not None and not loader.get("growers").empty
-                else []
-            )
-            territory_wa = wa_df[mask]
-        else:
-            territory_wa = wa_df.head(100)
+        rep_tehsils = rep.get("tehsil_list", []) if rep else []
+        territory_wa = wa_df[wa_df["grower_id"].isin(
+            loader.get("growers")[loader.get("growers")["tehsil"].isin(rep_tehsils)]["grower_id"].tolist()
+            if rep_tehsils and loader.get("growers") is not None else []
+        )] if rep_tehsils else wa_df.head(50)
         clicked = territory_wa[territory_wa["clicked_status"] == True]
         if not clicked.empty and "campaign_product" in clicked.columns:
-            wa_signals = clicked["campaign_product"].value_counts().head(3).to_dict()
-
-    # POS demand spikes (top selling SKUs this week)
-    pos_demand: dict = {}
-    pos_df = loader.get("pos")
-    if pos_df is not None and not pos_df.empty:
-        top_pos = pos_df.groupby("sku_name")["sku_qty"].sum().sort_values(ascending=False).head(5)
-        pos_demand = top_pos.to_dict()
+            wa_signals = clicked["campaign_product"].value_counts().head(2).to_dict()
 
     lines = [
-        f"=== TERRITORY CONTEXT FOR REP {rep_id} ===",
-        f"Territory: {rep.get('territory_name', 'Unknown') if rep else 'Unknown'}",
-        f"State: {rep.get('state', '') if rep else ''}, District: {rep.get('district', '') if rep else ''}",
-        "",
-        "=== WEATHER & RISK (Current) ===",
-        json.dumps(weather_data, indent=2),
-        "",
-        "=== PRODUCT CATALOG (Syngenta Rabi 2025-26) ===",
-        json.dumps(PRODUCTS_CATALOG, indent=2),
-        "",
-        "=== GROWERS IN TERRITORY (sample) ===",
-        json.dumps(grower_summary, indent=2),
-        "",
-        "=== RETAILER INVENTORY STATUS ===",
-        json.dumps(retailer_inv_summary, indent=2),
-        "",
-        "=== RECENT STOCKOUT ALERTS ===",
-        json.dumps(stockout_alerts, indent=2),
-        "",
-        "=== PRODUCTS PITCHED THIS MONTH ===",
-        json.dumps(products_pitched, indent=2),
-        "",
-        "=== WHATSAPP CAMPAIGN CLICKS (demand intent signals) ===",
-        json.dumps(wa_signals, indent=2),
-        "",
-        "=== POS DEMAND (top SKUs by units sold) ===",
-        json.dumps(pos_demand, indent=2),
+        f"REP={rep_id} | Territory={rep.get('territory_name','?') if rep else '?'} | District={rep.get('district','') if rep else ''}",
+        f"WEATHER: {json.dumps(weather_compact)}",
+        f"GROWERS: {json.dumps(grower_summary)}",
+        f"RETAILERS: {json.dumps(retailer_inv_summary)}",
+        f"STOCKOUTS: {json.dumps([s.get('sku_name','') for s in stockout_alerts])}",
+        f"PITCHED: {json.dumps(products_pitched)}",
+        f"WHATSAPP_CLICKS: {json.dumps(wa_signals)}",
     ]
     return "\n".join(lines)
 
