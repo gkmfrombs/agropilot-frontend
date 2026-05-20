@@ -1,6 +1,5 @@
 import sys
 import os
-import threading
 sys.path.insert(0, os.path.dirname(__file__))
 
 from fastapi import FastAPI
@@ -18,9 +17,8 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     loader.load_all()
-    # RAG init runs in background thread — server starts immediately
-    # Chat queries gracefully return empty RAG context until init completes (~30s)
-    threading.Thread(target=rag.init_rag, daemon=True).start()
+    # RAG init is lazy — loads on first chat request instead of startup.
+    # Keeps startup memory under 512MB for Render free tier.
     yield
 
 

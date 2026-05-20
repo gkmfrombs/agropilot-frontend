@@ -319,9 +319,10 @@ def init_rag() -> None:
 def query_rag(query: str, n: int = 6) -> str:
     """
     Retrieve top-n semantically relevant chunks for query.
-    Returns formatted string ready to inject into LLM system prompt.
-    Returns empty string if RAG not yet initialized.
+    Lazy-initializes RAG on first call to keep startup memory low.
     """
+    if not _initialized or _embeddings is None or not _docs:
+        init_rag()
     if not _initialized or _embeddings is None or not _docs:
         return ''
     q_vec = _embed([query])
