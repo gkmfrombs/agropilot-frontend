@@ -161,23 +161,23 @@ interface Message {
   followUps?: string[]
 }
 
-const buildInitialMessages = (name: string): Message[] => [
-  { text: `Good morning ${name || 'there'}! I've already analysed your territory. 3 farms need attention before the rain hits Thursday.`, isUser: false },
-  { text: 'What should I prioritize before the rain hits today?', isUser: true },
-  {
-    text: 'Apply Syngenta Tilt 25EC within 48 hours',
-    isUser: false,
-    bullets: [
-      'HD-2967 wheat at BBCH 65 (flowering) — peak fungal vulnerability window',
-      '48mm rainfall + 89% humidity over 31h matched Septoria infection conditions (Hardoi IMD)',
-      '0.87 cosine match to May 2023 outbreak — 14 plots, 12–22% yield loss in Bhatpura-Mallawan cluster',
-      '14 units Tilt 25EC at Kisan Store, Sandila Rd — 11 min drive, confirmed 2h ago',
-    ],
-    confidence: 94,
-    showSources: true,
-    followUps: ['What dosage?', 'Check stock', 'Show route'],
-  },
-]
+const buildInitialMessages = (name: string): Message[] => {
+  const h = new Date().getHours()
+  const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
+  return [
+    {
+      text: `${greet}, ${name || 'there'}! I'm your AgroPilot field assistant. Ask me anything about your crops, inventory, weather, or today's visit plan.`,
+      isUser: false,
+      followUps: [
+        "Today's recommendations",
+        "Who should I visit?",
+        "What's the weather today?",
+        "Check stock levels",
+        "Any disease alerts?",
+      ],
+    },
+  ]
+}
 
 // Mini waveform for voice messages
 function MiniWave() {
@@ -410,7 +410,16 @@ function loadMessages(name: string): Message[] {
     const raw = localStorage.getItem(CHAT_MESSAGES_KEY)
     if (raw) {
       const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Migrate: old demo format had bullets on first AI message — reset to clean greeting
+        const firstAI = parsed.find((m: Message) => !m.isUser)
+        if (firstAI?.bullets) {
+          localStorage.removeItem(CHAT_MESSAGES_KEY)
+          localStorage.removeItem(CHAT_HISTORY_KEY)
+          return buildInitialMessages(name)
+        }
+        return parsed
+      }
     }
   } catch {}
   return buildInitialMessages(name)
