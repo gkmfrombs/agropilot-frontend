@@ -663,7 +663,7 @@ export default function AIConsultant() {
       const parsed = parseStructuredResponse(accumulated)
       setMessages(prev => {
         const next = [...prev]
-        next[next.length - 1] = { ...parsed, isUser: false }
+        next[next.length - 1] = { text: '', ...parsed, isUser: false }
         return next
       })
     } catch (err) {
