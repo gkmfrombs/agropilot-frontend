@@ -25,6 +25,18 @@ const chatCss = `
       height: 100dvh;
     }
   }
+  @media (min-width: 768px) {
+    .chat-messages-inner {
+      max-width: 760px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .chat-input-inner {
+      max-width: 760px;
+      margin: 0 auto;
+      width: 100%;
+    }
+  }
   /* ── Markdown body ─────────────────────────────────────────── */
   .md-body {
     font-family: 'Plus Jakarta Sans', sans-serif;
@@ -693,14 +705,17 @@ export default function AIConsultant() {
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '18px 18px 8px', display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
-        {messages.map((msg, i) => (
-          <ChatMessage key={i} message={msg} delay={i * 80} onSend={sendMessage} />
-        ))}
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '18px 18px 8px' }} className="no-scrollbar">
+        <div className="chat-messages-inner" style={{ display: 'flex', flexDirection: 'column' }}>
+          {messages.map((msg, i) => (
+            <ChatMessage key={i} message={msg} delay={i * 80} onSend={sendMessage} />
+          ))}
+        </div>
       </div>
 
       {/* Input */}
       <div style={{ padding: '8px 18px 20px', background: 'var(--bg)', borderTop: '1px solid rgba(229,220,201,0.7)' }}>
+        <div className="chat-input-inner">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 999, padding: '6px 6px 6px 18px', boxShadow: '0 1px 2px rgba(20,18,12,0.04), 0 8px 22px rgba(20,18,12,0.06)' }}>
           <input
             type="text"
@@ -728,6 +743,7 @@ export default function AIConsultant() {
               : <ISend size={17} />
             }
           </button>
+        </div>
         </div>
       </div>
     </div>
