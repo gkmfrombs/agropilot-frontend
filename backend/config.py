@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
     frontend_url: str = "http://localhost:5173"
-    csv_dir: str = "../"
+    csv_dir: str = "../data/"
     port: int = 8000
     neo4j_uri: str = ""
     neo4j_user: str = "neo4j"
