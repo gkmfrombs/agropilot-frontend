@@ -408,32 +408,70 @@ select {
 
 /* =========== DESKTOP BREAKPOINT =========== */
 @media (min-width: 768px) {
-  /* Desktop: centered phone-width card floating on the green gradient */
-  .rep-layout {
-    background: transparent; /* let html/body green gradient show on sides */
+  html, body {
+    background: var(--bg);
   }
 
   .rep-content {
-    max-width: 480px;
+    padding-top: 64px;
+    max-width: 960px;
     margin: 0 auto;
-    padding: 0;
+    padding-left: 32px;
+    padding-right: 32px;
     box-sizing: border-box;
     height: 100%;
     overflow-y: auto;
-    /* subtle shadow so the cream card lifts off the green bg */
-    box-shadow: -24px 0 64px rgba(0,0,0,0.28), 24px 0 64px rgba(0,0,0,0.28);
   }
 
-  /* Center BottomNav to align with the 480px card */
-  .bottom-nav-wrap {
-    left: 50%;
-    right: auto;
-    width: 480px;
-    transform: translateX(-50%);
-  }
+  /* Hide mobile-only elements */
+  .bottom-nav-wrap { display: none !important; }
+  .top-strip-wrap  { display: none !important; }
+  .screen-root     { padding-top: 0; }
 
-  /* TopNav hidden — BottomNav inside the card handles all navigation */
-  .top-nav { display: none; }
+  /* Show desktop nav */
+  .top-nav {
+    display: flex;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 64px;
+    z-index: 100;
+    background: color-mix(in srgb, var(--bg) 94%, transparent);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+  }
+  .top-nav-inner {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .top-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .top-nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 13px;
+    border-radius: 10px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--ink-soft);
+    transition: background 140ms ease, color 140ms ease;
+    white-space: nowrap;
+  }
+  .top-nav-link:hover { background: var(--surface-warm); color: var(--ink); }
+  .top-nav-link.active { background: var(--primary-soft); color: var(--primary); }
 }
 
 @media (max-width: 767px) {

@@ -31,6 +31,7 @@ import SyncCenter from './screens/SyncCenter'
 function RepApp() {
   return (
     <div className="rep-layout">
+      <TopNav />
       <div className="rep-content">
         <Routes>
           <Route path="/" element={<MorningBriefing />} />

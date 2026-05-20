@@ -607,7 +607,7 @@ export default function AIConsultant() {
         }
       }
 
-      // Stream finished — parse structured markdown into card format
+      // Stream finished — render raw markdown (no forced card format)
       if (!accumulated) {
         setMessages(prev => {
           const next = [...prev]
@@ -620,10 +620,9 @@ export default function AIConsultant() {
       historyRef.current = [...historyRef.current, { role: 'assistant', content: accumulated }]
       try { localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(historyRef.current)) } catch {}
 
-      const parsed = parseStructuredResponse(accumulated)
       setMessages(prev => {
         const next = [...prev]
-        next[next.length - 1] = { ...parsed, isUser: false }
+        next[next.length - 1] = { text: accumulated, isUser: false }
         return next
       })
     } catch (err) {
