@@ -525,6 +525,22 @@ export default function AIConsultant() {
     const roiMatch = raw.match(/>\s*\*{0,2}ROI[^:]*:\*{0,2}\s*(.+)/i)
     const roi = roiMatch ? roiMatch[1].trim() : null
 
+    // Detect response type to pick contextual follow-ups
+    const isWeather = /weather|forecast|temperature|humidity|rain|wind/i.test(raw)
+    const isInventory = /RTL_|retailer.*stock|inventory|out.of.stock/i.test(raw)
+    const isCropDisease = !!(product || roi) || /dose:|kavach|tilt|actara|score|fungicide|insecticide/i.test(raw)
+    const isVisit = /visit|who.*meet|grower|route|stop/i.test(raw)
+
+    const followUps = isCropDisease
+      ? ['What dosage?', 'Check stock', 'Plan route']
+      : isWeather
+      ? ['Spray advisory?', 'Plan my visits', 'Disease risk?']
+      : isInventory
+      ? ['Get directions', 'Plan route', 'Who to visit?']
+      : isVisit
+      ? ['Check weather', 'Check stock', 'Show route']
+      : ['Today\'s plan', 'Weather update', 'Check stock']
+
     // Build card if we have a title OR at least 2 bullets
     if (title || bulletLines.length >= 2) {
       const extraBullets = [
@@ -533,19 +549,16 @@ export default function AIConsultant() {
       ].filter(Boolean) as string[]
 
       return {
-        text: headline || title || 'AgroPilot Recommendation',
+        text: headline || title || 'AgroPilot',
         bullets: [...bulletLines, ...extraBullets].slice(0, 8),
         confidence,
         showSources: true,
-        followUps: ['What dosage?', 'Check stock', 'Show reasoning graph'],
+        followUps,
       }
     }
 
-    // True fallback — plain markdown (should rarely hit this)
-    return {
-      text: raw || 'Got it.',
-      followUps: ['What dosage?', 'Check stock', 'Show route'],
-    }
+    // Fallback — plain text (greetings, short conversational replies)
+    return { text: raw || 'Got it.' }
   }
 
   const sendMessage = async (text?: string) => {
@@ -628,7 +641,7 @@ export default function AIConsultant() {
         }
       }
 
-      // Stream finished — render raw markdown (no forced card format)
+      // Stream finished — parse into structured card
       if (!accumulated) {
         setMessages(prev => {
           const next = [...prev]
@@ -641,9 +654,10 @@ export default function AIConsultant() {
       historyRef.current = [...historyRef.current, { role: 'assistant', content: accumulated }]
       try { localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(historyRef.current)) } catch {}
 
+      const parsed = parseStructuredResponse(accumulated)
       setMessages(prev => {
         const next = [...prev]
-        next[next.length - 1] = { text: accumulated, isUser: false }
+        next[next.length - 1] = { ...parsed, isUser: false }
         return next
       })
     } catch (err) {
