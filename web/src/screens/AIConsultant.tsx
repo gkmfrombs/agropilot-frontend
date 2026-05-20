@@ -402,19 +402,47 @@ function ChatMessage({ message, delay, onSend }: { message: Message; delay: numb
   )
 }
 
+const CHAT_MESSAGES_KEY = 'agro_chat_messages'
+const CHAT_HISTORY_KEY = 'agro_chat_history'
+
+function loadMessages(name: string): Message[] {
+  try {
+    const raw = localStorage.getItem(CHAT_MESSAGES_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+    }
+  } catch {}
+  return buildInitialMessages(name)
+}
+
+function loadHistory(): { role: string; content: string }[] {
+  try {
+    const raw = localStorage.getItem(CHAT_HISTORY_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return []
+}
+
 export default function AIConsultant() {
   const { t } = useTranslation()
   const { name } = useAuth()
   const location = useLocation()
-  const [messages, setMessages] = useState<Message[]>(() => buildInitialMessages(name))
+  const [messages, setMessages] = useState<Message[]>(() => loadMessages(name))
   const [input, setInput] = useState('')
   const [recording, setRecording] = useState(false)
   const [loading, setLoading] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const historyRef = useRef<{ role: string; content: string }[]>([])
+  const historyRef = useRef<{ role: string; content: string }[]>(loadHistory())
 
   // Holds the AbortController for the active stream so we can cancel on unmount
   const abortRef = useRef<AbortController | null>(null)
+
+  // Persist messages to localStorage whenever they change
+  useEffect(() => {
+    // Skip persisting if the only messages are the initial demo messages (nothing real yet)
+    try { localStorage.setItem(CHAT_MESSAGES_KEY, JSON.stringify(messages)) } catch {}
+  }, [messages])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -424,6 +452,13 @@ export default function AIConsultant() {
   useEffect(() => {
     return () => { abortRef.current?.abort() }
   }, [])
+
+  const clearChat = () => {
+    localStorage.removeItem(CHAT_MESSAGES_KEY)
+    localStorage.removeItem(CHAT_HISTORY_KEY)
+    historyRef.current = []
+    setMessages(buildInitialMessages(name))
+  }
 
   // Auto-send prefilled question from crop scanner (or any other screen)
   useEffect(() => {
@@ -502,6 +537,7 @@ export default function AIConsultant() {
     // Append user bubble + empty AI placeholder (empty text triggers loading dots)
     setMessages(prev => [...prev, { text: userMsg, isUser: true }, { text: '', isUser: false }])
     historyRef.current = [...historyRef.current, { role: 'user', content: userMsg }]
+    try { localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(historyRef.current)) } catch {}
 
     const repId = localStorage.getItem('agro_rep_id') || 'REP_0001'
     const token = localStorage.getItem('agro_token')
@@ -572,7 +608,17 @@ export default function AIConsultant() {
       }
 
       // Stream finished — parse structured markdown into card format
+      if (!accumulated) {
+        setMessages(prev => {
+          const next = [...prev]
+          next[next.length - 1] = { text: 'No response received. Please try again.', isUser: false }
+          return next
+        })
+        return
+      }
+
       historyRef.current = [...historyRef.current, { role: 'assistant', content: accumulated }]
+      try { localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(historyRef.current)) } catch {}
 
       const parsed = parseStructuredResponse(accumulated)
       setMessages(prev => {
@@ -617,9 +663,13 @@ export default function AIConsultant() {
           </div>
           <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: 'var(--ink-soft)', marginTop: 2 }}>{t('chat.rag_label', { count: 6 })}</div>
         </div>
-        <Link to="/graph" style={{ width: 36, height: 36, borderRadius: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary-soft)', border: '1px solid var(--border)', color: 'var(--primary)', textDecoration: 'none', fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, flexDirection: 'column', gap: 1 }}>
-          <IArrowR size={13} stroke="var(--primary)" style={{ transform: 'rotate(-45deg)' }} />
-        </Link>
+        <button
+          onClick={clearChat}
+          title="Clear chat"
+          style={{ width: 36, height: 36, borderRadius: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', color: 'var(--ink-soft)' }}
+        >
+          <IClose size={15} stroke="var(--ink-soft)" />
+        </button>
       </div>
 
       {/* Context chips */}

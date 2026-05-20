@@ -16,6 +16,26 @@ CROP_YIELD = {
     "chickpea": {"yield_qtl_acre": 6, "price_per_qtl": 5440},
     "potato": {"yield_qtl_acre": 120, "price_per_qtl": 800},
     "rice": {"yield_qtl_acre": 22, "price_per_qtl": 2183},
+    "tomato": {"yield_qtl_acre": 200, "price_per_qtl": 600},
+    "onion": {"yield_qtl_acre": 150, "price_per_qtl": 800},
+    "chili": {"yield_qtl_acre": 25, "price_per_qtl": 4000},
+    "pepper": {"yield_qtl_acre": 25, "price_per_qtl": 4000},
+    "brinjal": {"yield_qtl_acre": 180, "price_per_qtl": 500},
+    "eggplant": {"yield_qtl_acre": 180, "price_per_qtl": 500},
+    "cabbage": {"yield_qtl_acre": 250, "price_per_qtl": 400},
+    "cauliflower": {"yield_qtl_acre": 150, "price_per_qtl": 600},
+    "pea": {"yield_qtl_acre": 40, "price_per_qtl": 2500},
+    "peas": {"yield_qtl_acre": 40, "price_per_qtl": 2500},
+    "soybean": {"yield_qtl_acre": 10, "price_per_qtl": 3880},
+    "maize": {"yield_qtl_acre": 25, "price_per_qtl": 1870},
+    "corn": {"yield_qtl_acre": 25, "price_per_qtl": 1870},
+    "cotton": {"yield_qtl_acre": 8, "price_per_qtl": 6620},
+    "sugarcane": {"yield_qtl_acre": 400, "price_per_qtl": 340},
+    "mango": {"yield_qtl_acre": 50, "price_per_qtl": 4000},
+    "banana": {"yield_qtl_acre": 300, "price_per_qtl": 1500},
+    "grapes": {"yield_qtl_acre": 100, "price_per_qtl": 5000},
+    "groundnut": {"yield_qtl_acre": 12, "price_per_qtl": 5850},
+    "sunflower": {"yield_qtl_acre": 8, "price_per_qtl": 5800},
 }
 
 DISEASE_LOSS = {"mild": 0.10, "moderate": 0.25, "severe": 0.45}
@@ -30,9 +50,12 @@ PRODUCT_COST = {
 }
 
 
+_GENERIC_YIELD = {"yield_qtl_acre": 15, "price_per_qtl": 2000}
+
+
 def _build_yield_comparison(crop: str, severity: str, product_sku: str, farm_size: float = 1.0):
     """Build side-by-side yield loss comparison for 1 acre (default)."""
-    crop_data = CROP_YIELD.get(crop.lower(), CROP_YIELD["wheat"])
+    crop_data = CROP_YIELD.get(crop.lower(), _GENERIC_YIELD)
     loss_rate = DISEASE_LOSS.get(severity.lower(), 0.25)
     cost_per_acre = PRODUCT_COST.get(product_sku, 850)
 
@@ -169,6 +192,24 @@ def _enrich_response(result: dict, rep_id: str, farm_size: float = 1.0) -> dict:
 
 # ── Mock fallback data (used when LLM is unavailable) ─────────────────
 MOCK_DIAGNOSES = {
+    "default": {
+        "disease": "Fungal Leaf Spot",
+        "crop": "crop",
+        "severity": "moderate",
+        "confidence": 75,
+        "explanation": "Fungal leaf spots detected. Lesions with distinct margins visible on leaf surface. Spreads under humid conditions. Timely treatment prevents yield loss.",
+        "products": [{"name": "Tilt 250 EC", "sku": "SY_TILT_250EC", "dose": "200ml per acre in 200L water", "timing": "Apply at first sign. Repeat after 14 days if needed."}],
+        "urgency": "monitor",
+    },
+    "tomato": {
+        "disease": "Early Blight",
+        "crop": "tomato",
+        "severity": "moderate",
+        "confidence": 88,
+        "explanation": "Early blight detected on tomato leaves. Concentric ring lesions with yellow halos are characteristic. Disease spreads from lower leaves upward. Timely treatment protects fruit set.",
+        "products": [{"name": "Kavach 75 WP", "sku": "SY_KAV_75WP", "dose": "400g per acre in 200L water", "timing": "Apply at first sign. Repeat every 10 days."}],
+        "urgency": "treat_within_48h",
+    },
     "wheat": {
         "disease": "Septoria Leaf Blotch",
         "crop": "wheat",
@@ -232,7 +273,7 @@ async def scan_crop(
     except Exception as e:
         logger.error("Vision scan failed: %s", e, exc_info=True)
         crop_key = (crop_hint or "wheat").lower()
-        result = MOCK_DIAGNOSES.get(crop_key, MOCK_DIAGNOSES["wheat"]).copy()
+        result = MOCK_DIAGNOSES.get(crop_key, MOCK_DIAGNOSES["default"]).copy()
 
     # Ensure crop field is set
     if result.get("crop", "unknown") == "unknown" and crop_hint:
@@ -260,7 +301,7 @@ def scan_demo(body: dict):
     except Exception as e:
         logger.error("Demo scan failed: %s", e, exc_info=True)
         crop_key = crop.lower()
-        result = MOCK_DIAGNOSES.get(crop_key, MOCK_DIAGNOSES["wheat"]).copy()
+        result = MOCK_DIAGNOSES.get(crop_key, MOCK_DIAGNOSES["default"]).copy()
 
     # Ensure crop field is set
     if result.get("crop", "unknown") == "unknown":
