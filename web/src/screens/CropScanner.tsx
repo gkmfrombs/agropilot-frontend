@@ -254,38 +254,40 @@ export default function CropScanner() {
             </div>
 
             {/* Crop input */}
-            <div style={{ padding: '0 18px 16px', position: 'relative' }}>
-                <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: 700, color: 'var(--ink-soft)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Crop / Vegetable <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional — AI auto-detects)</span></div>
+            <div style={{ padding: '0 18px 12px', position: 'relative' }}>
+                <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: 700, color: 'var(--ink-soft)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Crop / Vegetable <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+                </div>
                 <input
                     type="text"
                     value={cropInput}
                     onChange={e => { setCropInput(e.target.value); setShowSuggestions(true); }}
                     onFocus={() => setShowSuggestions(true)}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-                    placeholder="e.g. Tomato, Onion, Wheat..."
-                    style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
+                    placeholder="AI auto-detects, or type: Tomato, Onion..."
+                    style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
                 />
-                {showSuggestions && cropInput.length === 0 && (
-                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {CROP_SUGGESTIONS.map(c => (
-                            <button key={c} onMouseDown={() => { setCropInput(c); setShowSuggestions(false); }} style={{ padding: '6px 14px', borderRadius: 99, background: 'var(--surface)', border: '1px solid var(--border)', fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }}>
-                                {c}
-                            </button>
-                        ))}
-                    </div>
-                )}
+                {/* Filtered dropdown — absolutely positioned, never pushes layout */}
                 {showSuggestions && cropInput.length > 0 && (() => {
                     const filtered = CROP_SUGGESTIONS.filter(c => c.toLowerCase().startsWith(cropInput.toLowerCase()) && c.toLowerCase() !== cropInput.toLowerCase());
                     return filtered.length > 0 ? (
-                        <div style={{ position: 'absolute', left: 18, right: 18, top: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, zIndex: 10, overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+                        <div style={{ position: 'absolute', left: 18, right: 18, top: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, zIndex: 20, overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
                             {filtered.slice(0, 5).map(c => (
-                                <button key={c} onMouseDown={() => { setCropInput(c); setShowSuggestions(false); }} style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink)', cursor: 'pointer', textAlign: 'left' }}>
+                                <button key={c} onMouseDown={() => { setCropInput(c); setShowSuggestions(false); }} style={{ width: '100%', padding: '11px 16px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: 'var(--ink)', cursor: 'pointer', textAlign: 'left' }}>
                                     {c}
                                 </button>
                             ))}
                         </div>
                     ) : null;
                 })()}
+            </div>
+            {/* Quick-pick chips — horizontal scroll, never wraps, never pushes layout */}
+            <div className="no-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 18px 14px' }}>
+                {CROP_SUGGESTIONS.slice(0, 12).map(c => (
+                    <button key={c} onClick={() => setCropInput(c)} style={{ flex: 'none', padding: '6px 14px', borderRadius: 99, background: cropInput === c ? 'var(--primary)' : 'var(--surface)', color: cropInput === c ? 'white' : 'var(--ink)', border: cropInput === c ? '1px solid var(--primary)' : '1px solid var(--border)', fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        {c}
+                    </button>
+                ))}
             </div>
 
             {/* Camera viewfinder */}
