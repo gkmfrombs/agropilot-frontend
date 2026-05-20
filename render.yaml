@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: agropilot-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CSV_DIR
+        value: ./data/
+      - key: PORT
+        value: 8000
