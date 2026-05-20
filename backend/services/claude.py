@@ -20,13 +20,16 @@ def get_client() -> Groq:
 def chat(system: str, messages: list[dict], max_tokens: int = 1024) -> str:
     client = get_client()
     all_messages = [{"role": "system", "content": system}] + messages
-    response = client.chat.completions.create(
-        model=settings.chat_model,
-        messages=all_messages,
-        max_tokens=max_tokens,
-        temperature=0.4,
-    )
-    return response.choices[0].message.content or ""
+    try:
+        response = client.chat.completions.create(
+            model=settings.chat_model,
+            messages=all_messages,
+            max_tokens=max_tokens,
+            temperature=0.4,
+        )
+        return response.choices[0].message.content or ""
+    except Exception as e:
+        return f'{{"error": "AI unavailable: {type(e).__name__}"}}'
 
 
 def chat_stream(system: str, messages: list[dict], max_tokens: int = 1024):

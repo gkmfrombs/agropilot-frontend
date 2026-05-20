@@ -26,7 +26,7 @@ def get_briefing(rep_id: str = Query(default='REP_0001')):
         f'Date: {datetime.now().strftime("%B %d, %Y")}.\n\nContext:\n{context}'
     )
 
-    raw = chat(SYSTEM_PROMPT_BRIEFING, [{'role': 'user', 'content': user_msg}], max_tokens=1200)
+    raw = chat(SYSTEM_PROMPT_BRIEFING, [{'role': 'user', 'content': user_msg}], max_tokens=800)
 
     # Parse LLM JSON; fall back to raw text so the endpoint never 500s
     try:
