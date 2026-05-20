@@ -76,10 +76,8 @@ function ManagerApp() {
  * on first login. Tour state is tracked in localStorage ('agro_tour_done').
  */
 function RepAppWithTour() {
-  // In dev: always show tour so the full first-login flow is testable
-  const [showTour, setShowTour] = useState(() =>
-    !localStorage.getItem('agro_tour_done')
-  )
+  // Always show tour — demo always shows full onboarding flow
+  const [showTour, setShowTour] = useState(true)
 
   const handleTourDone = () => {
     setShowTour(false)
@@ -95,10 +93,8 @@ function RepAppWithTour() {
 
 function AppRoutes() {
   const { role } = useAuth()
-  // In dev: always start from onboarding so the full flow is testable on every refresh
-  const [onboarded, setOnboarded] = useState(() =>
-    !!localStorage.getItem('agro_onboarded')
-  )
+  // Always start at /onboarding — demo always shows full flow
+  const [onboarded, setOnboarded] = useState(false)
 
   // ── Unauthenticated ────────────────────────────────────────────────────────
   if (!role) {
