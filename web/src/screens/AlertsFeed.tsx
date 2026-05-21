@@ -43,14 +43,19 @@ export default function AlertsFeed() {
 
     useEffect(() => {
         api.getAlerts().then((data: any) => {
-            if (data?.alerts?.length) setLiveAlerts(data.alerts.map((a: any) => ({
-                id: a.alert_id || a.id,
-                type: a.alert_type || a.type || 'stockout',
-                title: a.title,
-                desc: a.description || a.action || '',
-                time: a.created_at ? new Date(a.created_at).toLocaleDateString() : 'recent',
-                severity: (a.severity || 'LOW').toUpperCase(),
-            })));
+            if (data?.alerts?.length) setLiveAlerts(data.alerts.map((a: any) => {
+                const s = (a.severity || 'low').toLowerCase()
+                const severity = s === 'critical' || s === 'high' ? 'HIGH'
+                    : s === 'medium' ? 'MEDIUM' : 'LOW'
+                return {
+                    id: a.alert_id || a.id,
+                    type: a.alert_type || a.type || 'stockout',
+                    title: a.title,
+                    desc: a.description || a.action || '',
+                    time: a.created_at ? new Date(a.created_at).toLocaleDateString() : 'recent',
+                    severity,
+                }
+            }));
         }).catch(() => null);
     }, []);
 
@@ -100,7 +105,7 @@ export default function AlertsFeed() {
             {/* Alert cards */}
             <div style={{ padding: '0 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {filtered.map((alert, i) => {
-                    const r = RISK[alert.severity];
+                    const r = RISK[alert.severity] || RISK.LOW;
                     return (
                         <Link to={alert.id === 1 ? "/alert" : "#"} key={alert.id} onClick={alert.id !== 1 ? (e) => e.preventDefault() : undefined} className={`fade-up card-hover`} style={{ animationDelay: `${i * 60}ms`, background: 'var(--surface)', borderRadius: 20, padding: '16px 18px', borderLeft: `4px solid ${r.border}`, boxShadow: '0 1px 2px rgba(20,18,12,0.04), 0 8px 20px rgba(20,18,12,0.06)', textDecoration: 'none', color: 'inherit', cursor: alert.id === 1 ? 'pointer' : 'default' }}>
                             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>

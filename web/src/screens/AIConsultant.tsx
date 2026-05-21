@@ -633,7 +633,7 @@ export default function AIConsultant() {
             if (!line.startsWith('data:')) continue
             // Slice off "data:" and exactly one optional space — preserves
             // token-leading spaces that the LLM emits (e.g. " checked")
-            const payload = line.replace(/^data: ?/, '')
+            const payload = line.replace(/^data: ?/, '').replace(/\\n/g, '\n')
 
             if (payload === '[DONE]') break outer
 
