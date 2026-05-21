@@ -292,10 +292,8 @@ export default function CropScanner() {
 
             {/* Camera viewfinder */}
             <div style={{ margin: '0 18px', borderRadius: 24, height: 320, background: 'linear-gradient(180deg, #3a4a30 0%, #2c3a22 100%)', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--border)' }}>
-                {/* Live camera feed */}
-                {cameraActive && (
-                    <video ref={videoRef} autoPlay playsInline muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                )}
+                {/* Live camera feed — always in DOM so ref is available on mount */}
+                <video ref={videoRef} autoPlay playsInline muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: cameraActive ? 'block' : 'none' }} />
 
                 {/* Grid overlay */}
                 <div style={{ position: 'absolute', inset: 20, border: '1px solid rgba(255,255,255,0.25)', borderRadius: 12, pointerEvents: 'none' }}>
