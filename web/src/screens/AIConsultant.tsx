@@ -370,7 +370,7 @@ function AIMessageCard({ message }: { message: Message }) {
 
 function ChatMessage({ message, delay, onSend }: { message: Message; delay: number; onSend?: (t: string) => void }) {
   return (
-    <div className="slide-in-l" style={{ animationDelay: `${delay}ms`, display: 'flex', flexDirection: 'column', alignItems: message.isUser ? 'flex-end' : 'flex-start', marginBottom: 16 }}>
+    <div className="slide-in-l" style={{ animationDelay: `${delay}ms`, display: 'flex', flexDirection: 'column', alignItems: message.isUser ? 'flex-end' : 'flex-start', marginBottom: 16, minWidth: 0, overflow: 'hidden' }}>
       {!message.isUser && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
           <div style={{
@@ -400,10 +400,10 @@ function ChatMessage({ message, delay, onSend }: { message: Message; delay: numb
       )}
       {/* Follow-up pills */}
       {!message.isUser && message.followUps && (
-        <div style={{ marginTop: 10, paddingLeft: 30 }}>
-          <div className="no-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
+        <div style={{ marginTop: 10, paddingLeft: 30, minWidth: 0, overflow: 'hidden' }}>
+          <div className="no-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2, WebkitOverflowScrolling: 'touch' }}>
             {message.followUps.map((t, i) => (
-              <button key={t} className="slide-in-l" onClick={() => onSend?.(t)} style={{ flex: 'none', padding: '8px 13px', borderRadius: 999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'Plus Jakarta Sans', fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap', animationDelay: `${i * 60}ms`, boxShadow: '0 1px 2px rgba(20,18,12,0.04)' }}>
+              <button key={t} className="slide-in-l" onClick={() => onSend?.(t)} style={{ flex: '0 0 auto', padding: '8px 13px', borderRadius: 999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'Plus Jakarta Sans', fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap', animationDelay: `${i * 60}ms`, boxShadow: '0 1px 2px rgba(20,18,12,0.04)' }}>
                 {t}
               </button>
             ))}
