@@ -264,7 +264,7 @@ function AIMessageCard({ message }: { message: Message }) {
 
       {/* Label */}
       <div style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-        {message.confidence ? 'Recommendation' : message.showSources ? 'Field Intel' : 'AgroPilot'}
+        {message.confidence ? 'Recommendation' : message.bullets ? 'Field Intel' : 'AgroPilot'}
       </div>
 
       {/* Headline or markdown stream or loading dots */}
@@ -491,27 +491,46 @@ export default function AIConsultant() {
     }
   }, [])
 
-  // Parses LLM markdown response into the correct card mode.
+  // Parses LLM markdown into the correct display mode.
   //
-  // MODE 3 (disease): extracts bullets + confidence for animated card UI.
-  // MODE 2 (structured): passes raw markdown to ReactMarkdown — the md-body CSS
-  //   already renders ## headings, - bullets, and > blockquotes beautifully.
-  // MODE 1 (conversational): plain text, no card chrome.
+  // MODE 3 (disease)      → animated card with confidence badge
+  // MODE 2 (structured)   → animated card: bold heading + divider + bullet list
+  // MODE 1 (conversational) → plain text, no card chrome
   const parseStructuredResponse = (raw: string): Partial<Message> => {
     // ── Disease card detection ──────────────────────────────────────────────
-    // Strict: requires **Confidence: X%** · Product: meta-line AND ROI blockquote
     const hasCropFormat = /\*\*Confidence:\s*\d+%\*\*\s*[·•]\s*Product:/i.test(raw)
     const roiMatch = raw.match(/>\s*\*{0,2}ROI[^:]*:\*{0,2}\s*(.+)/i)
     const isCropDisease = hasCropFormat && !!roiMatch
-
     const confMatch = raw.match(/Confidence:\s*(\d+)%/i)
     const confidence = confMatch ? parseInt(confMatch[1]) : undefined
+
+    // ── Heading extraction — catches both ## heading and **Bold heading** ───
+    const lines = raw.split('\n')
+    const mdHeadingLine = lines.find(l => /^#{1,3}\s+/.test(l))
+    const mdTitle = mdHeadingLine ? mdHeadingLine.replace(/^#{1,3}\s+/, '').trim() : null
+
+    // bold heading: **Text** on its own line (not Confidence/ROI/Product meta)
+    const boldHeadingMatch = raw.match(/^\*\*([^*\n]{5,80})\*\*\s*$/m)
+    const boldTitle = boldHeadingMatch
+      ? boldHeadingMatch[1].trim()
+      : (() => {
+          const m = [...raw.matchAll(/\*\*([^*\n]{5,80})\*\*/g)]
+          return m.map(x => x[1].trim())
+            .find(t => !t.startsWith('Confidence') && !t.startsWith('ROI') && !t.startsWith('Product')) || null
+        })()
+
+    const title = mdTitle || boldTitle
+
+    // ── Bullet extraction ───────────────────────────────────────────────────
+    const bulletLines = lines
+      .filter(l => /^(\s*[-*•]\s+|\s*\d+\.\s+)/.test(l))
+      .map(l => l.replace(/^(\s*[-*•]\s+|\s*\d+\.\s+)/, '').trim())
+      .filter(b => b.length > 4)
 
     // ── Follow-up chips ─────────────────────────────────────────────────────
     const isWeather = /weather|forecast|temperature|humidity|rain|wind/i.test(raw)
     const isInventory = /RTL_|retailer.*stock|inventory|out.of.stock/i.test(raw)
     const isVisit = /visit|who.*meet|grower|route|stop/i.test(raw)
-
     const followUps = isCropDisease
       ? ['What dosage?', 'Check stock', 'Plan route']
       : isWeather
@@ -522,18 +541,8 @@ export default function AIConsultant() {
       ? ['Check weather', 'Check stock', 'Show route']
       : ["Today's plan", 'Weather update', 'Check stock']
 
-    // ── Disease card: extract bullets for animated custom card UI ───────────
+    // ── MODE 3: disease card ────────────────────────────────────────────────
     if (isCropDisease) {
-      const lines = raw.split('\n')
-      const headingLine = lines.find(l => /^#{1,3}\s+/.test(l))
-      const title = headingLine ? headingLine.replace(/^#{1,3}\s+/, '').trim() : null
-      const boldMatches = [...raw.matchAll(/\*\*([^*\n]{10,160})\*\*/g)]
-      const headline = boldMatches.map(m => m[1].trim())
-        .find(t => !t.startsWith('Confidence') && !t.startsWith('ROI') && !t.startsWith('Product')) || null
-      const bulletLines = lines
-        .filter(l => /^(\s*[-*•]\s+|\s*\d+\.\s+)/.test(l))
-        .map(l => l.replace(/^(\s*[-*•]\s+|\s*\d+\.\s+)/, '').trim())
-        .filter(b => b.length > 5)
       const metaMatch = raw.match(/Product:\s*([^·\n\*]+)/i)
       const product = metaMatch ? metaMatch[1].trim() : null
       const roi = roiMatch ? roiMatch[1].trim() : null
@@ -542,7 +551,7 @@ export default function AIConsultant() {
         roi && !bulletLines.some(b => b.toLowerCase().includes('roi')) ? `ROI: ${roi}` : null,
       ].filter(Boolean) as string[]
       return {
-        text: headline || title || 'Disease Diagnosis',
+        text: title || 'Disease Diagnosis',
         bullets: [...bulletLines, ...extraBullets].slice(0, 8),
         confidence,
         showSources: true,
@@ -550,18 +559,17 @@ export default function AIConsultant() {
       }
     }
 
-    // ── Structured response: has ## heading or - bullets ────────────────────
-    // Pass raw to ReactMarkdown — md-body CSS renders it correctly.
-    const hasMarkdownStructure = /^#{1,3}\s+/m.test(raw) || /^[-*•]\s+/m.test(raw)
-    if (hasMarkdownStructure) {
+    // ── MODE 2: structured card (heading + bullets) ─────────────────────────
+    if (bulletLines.length >= 2) {
       return {
-        text: raw,
+        text: title || 'Field Intelligence',
+        bullets: bulletLines.slice(0, 8),
         showSources: true,
         followUps,
       }
     }
 
-    // ── Conversational / plain response ─────────────────────────────────────
+    // ── MODE 1: conversational / plain ──────────────────────────────────────
     return {
       text: raw || 'Got it.',
       followUps: ["Today's recommendations", "Who should I visit?", "Check stock levels", "Any disease alerts?"],
